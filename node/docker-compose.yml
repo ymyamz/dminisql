@@ -1,0 +1,50 @@
+version: '3'
+
+networks:
+  etcd-cluster:
+    external: true
+
+services:
+  etcd-node1:
+    image: gcr.io/etcd-development/etcd:v3.4.31
+    container_name: etcd-node1
+    ports:
+      - "20079:2379"
+      - "20080:2380"
+    restart: always
+    volumes:
+      - ./etcd-node1:/data/app/etcd
+    command: etcd --name etcd-node1 --data-dir /data/app/etcd/ --advertise-client-urls http://172.20.0.10:2379 --initial-advertise-peer-urls http://172.20.0.10:2380 --listen-client-urls http://0.0.0.0:2379 --listen-peer-urls http://0.0.0.0:2380 --initial-cluster-token etcd-cluster --initial-cluster "etcd-node1=http://172.20.0.10:2380,etcd-node2=http://172.20.0.11:2380,etcd-node3=http://172.20.0.12:2380" --initial-cluster-state new
+    networks:
+      etcd-cluster:
+        ipv4_address: 172.20.0.10
+
+  etcd-node2:
+    image: gcr.io/etcd-development/etcd:v3.4.31
+    container_name: etcd-node2
+    ports:
+      - "20179:2379"
+      - "20180:2380"
+    restart: always
+    volumes:
+      - ./etcd-node2:/data/app/etcd
+    command: etcd --name etcd-node2 --data-dir /data/app/etcd/ --advertise-client-urls http://172.20.0.11:2379 --initial-advertise-peer-urls http://172.20.0.11:2380 --listen-client-urls http://0.0.0.0:2379 --listen-peer-urls http://0.0.0.0:2380 --initial-cluster-token etcd-cluster --initial-cluster "etcd-node1=http://172.20.0.10:2380,etcd-node2=http://172.20.0.11:2380,etcd-node3=http://172.20.0.12:2380" --initial-cluster-state new
+    networks:
+      etcd-cluster:
+        ipv4_address: 172.20.0.11
+
+  etcd-node3:
+    image: gcr.io/etcd-development/etcd:v3.4.31
+    container_name: etcd-node3
+    ports:
+      - "20279:2379"
+      - "20280:2380"
+    restart: always
+    volumes:
+      - ./etcd-node3:/data/app/etcd
+    command: etcd --name etcd-node3 --data-dir /data/app/etcd/ --advertise-client-urls http://172.20.0.12:2379 --initial-advertise-peer-urls http://172.20.0.12:2380 --listen-client-urls http://0.0.0.0:2379 --listen-peer-urls http://0.0.0.0:2380 --initial-cluster-token etcd-cluster --initial-cluster "etcd-node1=http://172.20.0.10:2380,etcd-node2=http://172.20.0.11:2380,etcd-node3=http://172.20.0.12:2380" --initial-cluster-state new
+    networks:
+      etcd-cluster:
+        ipv4_address: 172.20.0.12
+
+  
