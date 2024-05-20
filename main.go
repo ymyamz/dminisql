@@ -16,7 +16,8 @@ func main() {
 		case "client":  
 			fmt.Println("Running in client mode")  
 			var client Client
-			client.Init("ddd")
+			client.Init()
+			client.Run()
 
 		case "master":  
 			fmt.Println("Running in master mode")  
