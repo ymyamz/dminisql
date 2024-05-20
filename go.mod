@@ -1,4 +1,4 @@
-module try
+module distribute-sql
 
 go 1.22.0
 
