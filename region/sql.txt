@@ -32,6 +32,7 @@ func main() {
 		var input string
 		
 		input = accept_sql_statement()
+		fmt.Println("Received query:", input)
 		//把input转化为全小写
 		input = strings.ToLower(input)
 		if input == "exit" {

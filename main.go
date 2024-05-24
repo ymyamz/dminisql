@@ -3,6 +3,7 @@ package main
 import (
 	. "distribute-sql/client" // 相对路径导入client包
 	. "distribute-sql/master"
+	. "distribute-sql/region"
 	"fmt"
 	"os"
 ) 
@@ -27,7 +28,9 @@ func main() {
 
 		case "region":  
 			fmt.Println("Running in region mode")  
-
+			var region Region
+			region.Init()
+			
 
 		default:  
 			fmt.Println("Unknown mode:", mode)  
