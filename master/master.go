@@ -18,6 +18,9 @@ type Master struct {
 	regionClients map[string]*rpc.Client
 
 }
+func (master *Master) Init(){
+	master.regionCount=0
+}
 
 func (master *Master) Run(){
 	fmt.Println("master init and listening ")

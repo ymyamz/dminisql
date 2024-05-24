@@ -6,7 +6,7 @@ networks:
 
 services:
   etcd-node1:
-    image: etcd-shell
+    image: term-node
     container_name: etcd-node1
     ports:
       - "20079:2379"
@@ -20,7 +20,7 @@ services:
         ipv4_address: 172.20.0.10
 
   etcd-node2:
-    image: etcd-shell
+    image: term-node
     container_name: etcd-node2
     ports:
       - "20179:2379"
@@ -34,7 +34,7 @@ services:
         ipv4_address: 172.20.0.11
 
   etcd-node3:
-    image: etcd-shell
+    image: term-node
     container_name: etcd-node3
     ports:
       - "20279:2379"

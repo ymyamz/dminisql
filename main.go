@@ -2,6 +2,7 @@ package main
 
 import (
 	. "distribute-sql/client" // 相对路径导入client包
+	. "distribute-sql/master"
 	"fmt"
 	"os"
 ) 
@@ -21,7 +22,9 @@ func main() {
 
 		case "master":  
 			fmt.Println("Running in master mode")  
-
+			var master Master
+			master.Init()
+			master.Run()
 
 		case "region":  
 			fmt.Println("Running in region mode")  
