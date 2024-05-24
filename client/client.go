@@ -13,7 +13,7 @@ type Client struct {
 
 func (client *Client) Init(){
 	fmt.Println("client init and link to master ",util.MASTER_IP)
-	rpcMas, err := rpc.DialHTTP("tcp", "localhost"+util.MASTER_PORT)
+	rpcMas, err := rpc.DialHTTP("tcp", util.MASTER_IP+util.MASTER_PORT)
 	if err != nil {
 		fmt.Printf("CLIENT ERROR >>> connect error: %v", err)
 	}
