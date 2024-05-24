@@ -35,13 +35,19 @@ func (master *Master) Run(){
 	}  
 	defer master.etcdClient.Close()
 
+
+	// 注册rpc函数
 	rpc.Register(master)
 	rpc.HandleHTTP()
-	master_server, _ := net.Listen("tcp", util.MASTER_PORT)
-	go http.Serve(master_server, nil)
-
+	// 启动server
+	l, err := net.Listen("tcp",  util.MASTER_PORT)
+	if err != nil {
+		fmt.Println("Accept error:", err)
+	}
+	go http.Serve(l, nil) // 进入的链接让rpc来执行
 	for {
 		time.Sleep(10 * time.Second)
 	}
 
 }
+

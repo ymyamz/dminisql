@@ -4,7 +4,8 @@ import (
 	"fmt"
 )
 
-func (master *Master)call_test(res *string){
-	fmt.Println("CALL master SUCCESS\n")
-	*res="abcdefg"
-}
+func (m *Master) CallTest(arg string, reply *string) error {  
+	fmt.Println("CALL master SUCCESS")  
+	*reply = "hello " + arg  
+	return nil  
+}  

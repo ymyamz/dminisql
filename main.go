@@ -9,7 +9,6 @@ import (
   
 func main() {  
 	args := os.Args  
-  
 	// 获取类型client/master/region  
 	if len(args) > 1 {  
 		mode := args[1]  
