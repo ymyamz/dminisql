@@ -14,4 +14,14 @@ TODO
 在本地一个client,一个master,一个region
 分布式etcd（远程）
 
-create table suer(name TEXT,address TEXT); 
+ 
+
+使用步骤：
+1，打开三个终端，分别在三个终端分别输入以下命令：
+go run main.go region 
+go run main.go master
+go run main.go client
+
+2，在client终端输入以下命令：
+create table suer(name TEXT,address TEXT);
+show tables;
