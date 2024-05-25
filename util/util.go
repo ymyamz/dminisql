@@ -24,7 +24,7 @@ var Region_IPs []string
 var Region_IPs_LOCAL []string
 func init() {
 	Region_IPs_LOCAL=[]string{"localhost"}
-	Region_IPs=[]string{"172.20.0.11","172.20.0.11"}
+	Region_IPs=[]string{"172.20.0.11","172.20.0.12"}
 }
 
 // rpc util
