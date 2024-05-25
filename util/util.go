@@ -34,3 +34,24 @@ func TimeoutRPC(call *rpc.Call, ms int) (*rpc.Call, error) {
 		return nil, fmt.Errorf("%v timeout", call.ServiceMethod)
 	}
 }
+
+func FindElement(pSlice *[]string, str string) int {
+    for i, v := range *pSlice {
+        if v == str {
+            return i
+        }
+    }
+    return -1
+}
+
+
+func DeleteFromSlice(pSlice *[]string, str string) bool {
+	// Dont use append, for the sake of efficiency
+	index := FindElement(pSlice, str)
+	if index == -1 {
+		return false
+	}
+	(*pSlice)[index] = (*pSlice)[len(*pSlice)-1]
+	*pSlice = (*pSlice)[:len(*pSlice)-1]
+	return true
+}

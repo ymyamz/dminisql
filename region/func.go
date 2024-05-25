@@ -6,6 +6,34 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+//master初始化使用
+//返回当前有什么table
+func (region *Region) TableName(input string, reply *[]string) error  {  
+    //TODO  
+    fmt.Println("Return TABLENAME in region")  
+    rows, err := region.db.Query("SELECT name FROM sqlite_master WHERE type='table'")  
+    if err != nil {  
+        fmt.Printf("Query failed: %v\n", err)  
+        *reply = append(*reply, "failedinquery")  
+        return nil  
+    }  
+    defer rows.Close()  
+  
+    var tables []string  
+    for rows.Next() {  
+        var tableName string  
+        err = rows.Scan(&tableName)  
+        if err != nil {  
+            fmt.Printf("Scan failed: %v\n", err)  
+            *reply = append(*reply, "failedinscan")  
+            return nil  
+        }  
+        tables = append(tables, tableName)  
+    }  
+    *reply = tables  
+    return nil  
+}  
+
 //非查询类
 func (region *Region)Execute(input string, reply *string) error {
 	fmt.Println("Execute input:", input)
@@ -23,7 +51,7 @@ func (region *Region)Execute(input string, reply *string) error {
 func (region *Region) Query(input string, reply *string) error{
 	//TODO
 	fmt.Println("Query called")
-	rows, err := region.db.Query("SELECT name FROM sqlite_master WHERE type='table'")
+	rows, err := region.db.Query(input)
 	if err != nil {
 		fmt.Printf("Query failed: %v\n", err)
 		*reply="failedinquery"

@@ -3,6 +3,7 @@ package master
 import (
 	"distribute-sql/util"
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -22,7 +23,7 @@ func (master *Master)TableCreate(input string, reply *string)  error {
 	}else {
 		//寻找table数最少的节点
 		var best_server string
-		master.FindBest(best_server)
+		master.FindBest(&best_server)
 		rpcRegion:=master.regionClients[best_server]
 		var res string
 		//创建表
@@ -51,7 +52,7 @@ func (master *Master)TableDrop(input string, reply* string) error {
 		rpcRegion := master.regionClients[ip]
 		var res string
 		// drop table
-		call, err := TimeoutRPC(rpcRegion.Go("Region.Execute", input, &res, nil), 10000)
+		call, err := util.TimeoutRPC(rpcRegion.Go("Region.Execute", input, &res, nil), util.TIMEOUT_M)
 		if err!= nil {
 			fmt.Println("region return err ",err)
 			return err
@@ -61,11 +62,11 @@ func (master *Master)TableDrop(input string, reply* string) error {
 			return call.Error
 		}
 		
-		master.deleteTable(args.Table, ip)
+		master.deleteTable(table_name, ip)
 		return nil
 	}
 	fmt.Println("region return ",*reply)
-	return ni
+	return nil
 }
 
 //test
@@ -89,12 +90,19 @@ func (master *Master)QueryReigon(input string, reply *string)  error {
 }
 
 
-func (master *Master)FindBest(best string*) error {
-	min, *best := math.MaxInt, ""
-	for ip, pTables := range master.serverTables {
+func (master *Master)FindBest(best *string) error {
+	min := math.MaxInt
+	*best =  ""
+	for ip, pTables := range master.owntablelist {
 		if len(*pTables) < min {
 			min, *best = len(*pTables), ip
 		}
 	}
 	return nil
+}
+
+func (master *Master) deleteTable(table, ip string) {
+	// master.deleteTableIndices(table)
+	delete(master.tableIP, table)
+	util.DeleteFromSlice(master.owntablelist[ip], table)
 }

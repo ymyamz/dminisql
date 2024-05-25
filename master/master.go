@@ -51,7 +51,9 @@ func (master *Master) Init(){
 	}
 
 	//初始化该table所在region的ip
-	master.tableIP = make(map[string]string)
+	//TODO
+	master.tableIP=make(map[string]string)
+	master.InitTableIP()
 
 	master.backup = make(map[string]string)
 	
@@ -87,3 +89,28 @@ func (master *Master) Run(){
 
 }
 
+//把本地的db文件中的table信息同步
+func (master *Master)InitTableIP(){
+	for _,region_ip := range util.Region_IPs{
+		client:=master.regionClients[region_ip]
+
+		var res []string
+		call, err := util.TimeoutRPC(client.Go("Region.TableName", "no use", &res, nil), util.TIMEOUT_M)
+		if err != nil {
+			fmt.Println("SYSTEM HINT>>> timeout, region down!")
+		}
+		if call.Error != nil {
+			fmt.Println("RESULT>>> failed ",call.Error)
+		} else {
+			fmt.Println("RESULT>>> res: \n",res)
+		}
+		//打印返回的table列表
+		fmt.Println("region_ip:",region_ip,"table list:",res)
+		//更新本地的tableIP和owntablelist
+		for _,table := range res{
+			master.tableIP[table]=region_ip
+		}
+		master.owntablelist[region_ip]=&res
+	}
+
+}
