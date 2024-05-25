@@ -3,6 +3,7 @@ package master
 import (
 	"distribute-sql/util"
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -21,7 +22,16 @@ func (master *Master)TableCreate(input string, reply *string)  error {
 		*reply = "table already exists"
 	}else {
 		//寻找table数最少的节点
-		rpcRegion:=master.regionClients["localhost"]
+		min, best := math.MaxInt, ""
+		for ip, pTables := range master.owntablelist {
+			if len(*pTables) < min {
+				min, best = len(*pTables), ip
+			}
+		}
+
+		rpcRegion:=master.regionClients[best]
+		fmt.Println("best_ip:",best)
+
 		var res string
 		//创建表
 		err := rpcRegion.Go("Region.Execute", input, &res, nil)
@@ -53,3 +63,4 @@ func (master *Master)QueryReigon(input string, reply *string)  error {
 
 	return nil
 }
+
