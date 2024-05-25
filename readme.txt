@@ -23,7 +23,8 @@ go run main.go master
 go run main.go client
 
 2，在client终端输入以下命令：
-create table user(name TEXT,address TEXT);
+create table user (name TEXT,address TEXT);
+create table user_2 (name TEXT,address TEXT);
 show tables;
 
 INSERT INTO user (name, address) VALUES ('John Doe', '123 Main Street');  
