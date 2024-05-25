@@ -14,6 +14,4 @@ TODO
 在本地一个client,一个master,一个region
 分布式etcd（远程）
 
-
-
-周末先不写docker,把本地三个终端先实现了
+create table suer(name TEXT,address TEXT); 

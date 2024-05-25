@@ -1,6 +1,7 @@
 package master
 
 import (
+	"distribute-sql/util"
 	"fmt"
 	"strings"
 )
@@ -38,12 +39,17 @@ func (master *Master)QueryReigon(input string, reply *string)  error {
 	fmt.Println("master.query called")
 	rpcRegion:=master.regionClients["localhost"]
 	var res string
-	//创建表
-	err := rpcRegion.Go("Region.Query", input, &res, nil)
-	if err!= nil {
-		fmt.Println("region return err ",err)
+
+	call, err := util.TimeoutRPC(rpcRegion.Go("Region.Query", input, &res, nil), util.TIMEOUT_M)
+	if err != nil {
+		fmt.Println("SYSTEM HINT>>> timeout, region down!")
 	}
-	fmt.Println("region return ",res)
+	if call.Error != nil {
+		fmt.Println("RESULT>>> failed ",call.Error)
+	} else {
+		fmt.Println("RESULT>>> res: \n",res)
+	}
 	*reply = res
+
 	return nil
 }

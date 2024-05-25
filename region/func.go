@@ -36,23 +36,25 @@ func (region *Region) Query(input string, reply *string) error{
 		colPtrs[i] = &colVals[i]  
 	}  
 
+	response := ""  
+	
 	// Print column headers  
 	header := "|"  
 	separator := "|"  
 	for _, colName := range cols {  
-		header += fmt.Sprintf(" %-15s |", colName)  // Assuming a maximum width of 15 for each column  
+		header += fmt.Sprintf(" %-15s |", colName) // Assuming a maximum width of 15 for each column  
 		separator += "-----------------|"  
 	}  
-	fmt.Println(header)  
-	fmt.Println(separator)  
+	response += header + "\n"  
+	response += separator + "\n"  
+	
 	// Iterate over rows  
 	for rows.Next() {  
 		err = rows.Scan(colPtrs...)  
 		if err != nil {  
-			
-			fmt.Printf("Query failed: %v\n", err)
-			*reply="failedscan"
-			return nil
+			fmt.Printf("Query failed: %v\n", err)  
+			*reply = "failedscan"  
+			return nil  
 		}  
 		rowOutput := "|"  
 		for _, col := range colVals {  
@@ -71,8 +73,8 @@ func (region *Region) Query(input string, reply *string) error{
 				}  
 			}  
 		}  
-		fmt.Println(rowOutput)  
-	}
-	*reply="show query"
+		response += rowOutput + "\n"  
+	}  
+	*reply=response
 	return nil
 }

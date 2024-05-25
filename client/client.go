@@ -104,23 +104,29 @@ func (client *Client)parse_sql_statement(input string){
 			if items[1]=="table"{
 				var res string
 				//具体table名称解析等在master中进行
-				err := client.rpcMaster.Go("Master.TableCreate", input, &res, nil)
+				call, err := util.TimeoutRPC(client.rpcMaster.Go("Master.TableCreate", input, &res, nil), util.TIMEOUT_M)
 				if err != nil {
 					fmt.Println("SYSTEM HINT>>> timeout, master down!")
 				}
-				fmt.Println("RESULT>>> ",res)
+				if call.Error != nil {
+					fmt.Println("RESULT>>> failed ",call.Error)
+				} else {
+					fmt.Println("RESULT>>> res: ",res)
+				}
 			}
 		case "show":
 			if items[1]=="tables"{
 				var res string
-				//具体table名称解析等在master中进行
-				err := client.rpcMaster.Go("Master.QueryReigon", input, &res, nil)
+				call, err := util.TimeoutRPC(client.rpcMaster.Go("Master.QueryReigon", input, &res, nil), util.TIMEOUT_M)
 				if err != nil {
 					fmt.Println("SYSTEM HINT>>> timeout, master down!")
 				}
-				fmt.Println("RESULT>>> ",res)
+				if call.Error != nil {
+					fmt.Println("RESULT>>> failed ",call.Error)
+				} else {
+					fmt.Println(res)
+				}
 			}
-
 		
 		
 
