@@ -54,7 +54,7 @@ func (region *Region) Query(input string, reply *string) error{
 	rows, err := region.db.Query(input)
 	if err != nil {
 		fmt.Printf("Query failed: %v\n", err)
-		*reply="failedinquery"
+		*reply="failed query"
 		return nil
 	}
 	cols, _ := rows.Columns()  

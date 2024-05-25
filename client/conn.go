@@ -17,7 +17,9 @@ func (client *Client) connect_to_master(call_func string,input string) string {
 	if call.Error != nil {
 		fmt.Println("RESULT>>> failed ",call.Error)
 	} else {
-		fmt.Println("RESULT>>> \n",res)
+		if call_func!="Master.GetTableIP"{
+			fmt.Println("RESULT>>>\n"+res)
+		}
 	}
 	return res
 }
@@ -35,7 +37,7 @@ func (client *Client) connect_to_region(region_ip string,call_func string,input 
 	if call.Error != nil {
 		fmt.Println("RESULT>>> failed ",call.Error)
 	} else {
-		fmt.Println("RESULT>>> res: ",res)
+		fmt.Println("RESULT>>>\n"+res)
 	}
 	return res
 }

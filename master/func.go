@@ -13,6 +13,24 @@ func (m *Master) CallTest(arg string, reply *string) error {
 	return nil  
 }  
 
+//直接查看owntablelsit查询所有region的table，以表格形式返回所有table以及其所属regionip
+func (m *Master) TableShow(arg string, reply *string) error {  
+	fmt.Println("master tableshow.called")
+	var res string
+	res="|"+ fmt.Sprintf(" %-15s |", "name")+ fmt.Sprintf(" %-15s |", "region_ip")+"\n"
+	res+="|-----------------|-----------------|\n"
+
+	for _,region_ip := range util.Region_IPs{
+		tables:=*m.owntablelist[region_ip]
+		for _,table := range tables{
+			res+="|"+ fmt.Sprintf(" %-15s |", table)+ fmt.Sprintf(" %-15s |", region_ip)+"\n"
+		}
+	}
+	*reply=res
+	return nil
+
+}
+
 func (master *Master)TableCreate(input string, reply *string)  error {  
 	fmt.Println("master tablecreate.called")
 	items:=strings.Split(input, " ")
@@ -39,7 +57,7 @@ func (master *Master)TableCreate(input string, reply *string)  error {
 			fmt.Println("region return err ",err)
 		}
 		master.tableIP[table_name] = best
-		*reply = res
+		*reply = "table created in region " + best
 	}
 	fmt.Println("region return ",*reply)
 	return nil

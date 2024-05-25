@@ -38,7 +38,7 @@ func (client *Client) Test(){
 	if call.Error != nil {
 		fmt.Println("RESULT>>> failed",call.Error)
 	} else {
-		fmt.Println("RESULT>>> res: ",res)
+		fmt.Println("RESULT>>>\n",res)
 	}
 
 
@@ -55,7 +55,6 @@ func (client *Client) Run(){
 		input = strings.ToLower(input)
 		input = strings.TrimSpace(input)
 		input = strings.ReplaceAll(input, "\\s+", " ")
-		fmt.Println("Received query:",input)
 
 		if input == "exit" {
 			break
@@ -108,11 +107,11 @@ func (client *Client)parse_sql_statement(input string){
 				
 			}
 		case "show":
-			//如果是show tables，则input要修改.//有待修改成返回所有region的table
+			//返回所有region的table
 			if items[1]=="tables"{
-				call_func:="Master.QueryReigon"
-				input_showtables:="SELECT name FROM sqlite_master WHERE type='table'"
-				client.connect_to_master(call_func,input_showtables)
+				call_func:="Master.TableShow"
+				//input_showtables:="SELECT name FROM sqlite_master WHERE type='table'"
+				client.connect_to_master(call_func,"no use")
 
 			}
 		case "drop":
@@ -124,13 +123,13 @@ func (client *Client)parse_sql_statement(input string){
 		//其他默认执行
 		default:
 			//先解析出具体的table，询问master table的ip地址，然后连接到对应的region，执行sql语句
-			table_name:=client.prepocess_sql(input)
+			table_name,call_func:=client.prepocess_sql(input)
 			if table_name!=""{
 				//询问master table的ip地址
 				region_ip:=client.connect_to_master("Master.GetTableIP",table_name)
 				//连接到对应的region，执行sql语句
 				if region_ip!=""{
-					client.connect_to_region(region_ip,"Region.Query",input)
+					client.connect_to_region(region_ip,call_func,input)
 				}
 
 			}
@@ -140,10 +139,12 @@ func (client *Client)parse_sql_statement(input string){
 
 }
 
-func (client *Client)prepocess_sql(input string)string{
+func (client *Client)prepocess_sql(input string)(string,string){
 	var table string
+	var call_func string
 	words := strings.Split(input, " ")
 	if words[0] == "select" {
+		call_func="Region.Query"
 		//select语句的表名放在from后面
 		for i := 0; i < len(words); i++ {
 			if words[i] == "from" && i != (len(words)-1) {
@@ -152,11 +153,12 @@ func (client *Client)prepocess_sql(input string)string{
 			}
 		}
 	} else if words[0] == "insert" || words[0] == "delete" {
+		call_func="Region.Execute"
 		if len(words) >= 3 {
 			table = words[2]
 		}
 	} else {
 		table=""
 	}
-	return table
+	return table,call_func
 }
