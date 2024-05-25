@@ -93,6 +93,7 @@ func (client *Client)accept_sql_statement()(string) {
 	return query.String()
 }  
 
+
 //解析输入的语句
 func (client *Client)parse_sql_statement(input string){
 	//解析sql语句
@@ -102,61 +103,55 @@ func (client *Client)parse_sql_statement(input string){
 
 		case "create":
 			if items[1]=="table"{
-				var res string
-				//具体table名称解析等在master中进行
-				call, err := util.TimeoutRPC(client.rpcMaster.Go("Master.TableCreate", input, &res, nil), util.TIMEOUT_M)
-				if err != nil {
-					fmt.Println("SYSTEM HINT>>> timeout, master down!")
-				}
-				if call.Error != nil {
-					fmt.Println("RESULT>>> failed ",call.Error)
-				} else {
-					fmt.Println("RESULT>>> res: ",res)
-				}
+				call_func:="Master.TableCreate"
+				client.connect_to_master(call_func,input)
+				
 			}
 		case "show":
-			//如果是show tables，则input要修改
+			//如果是show tables，则input要修改.//有待修改成返回所有region的table
 			if items[1]=="tables"{
-				var res string
-				input="SELECT name FROM sqlite_master WHERE type='table'"
-				call, err := util.TimeoutRPC(client.rpcMaster.Go("Master.QueryReigon", input, &res, nil), util.TIMEOUT_M)
-				if err != nil {
-					fmt.Println("SYSTEM HINT>>> timeout, master down!")
-				}
-				if call.Error != nil {
-					fmt.Println("RESULT>>> failed ",call.Error)
-				} else {
-					fmt.Println(res)
-				}
-			}
-		case "select":
+				call_func:="Master.QueryReigon"
+				input_showtables:="SELECT name FROM sqlite_master WHERE type='table'"
+				client.connect_to_master(call_func,input_showtables)
 
-			var res string
+			}
 
-			call, err := util.TimeoutRPC(client.rpcMaster.Go("Master.QueryReigon", input, &res, nil), util.TIMEOUT_M)
-			if err != nil {
-				fmt.Println("SYSTEM HINT>>> timeout, master down!")
-			}
-			if call.Error != nil {
-				fmt.Println("RESULT>>> failed ",call.Error)
-			} else {
-				fmt.Println(res)
-			}
-			
 		//其他默认执行
 		default:
-			var res string
-			//具体table名称解析等在master中进行
-			call, err := util.TimeoutRPC(client.rpcMaster.Go("Master.TableCreate", input, &res, nil), util.TIMEOUT_M)
-			if err != nil {
-				fmt.Println("SYSTEM HINT>>> timeout, master down!")
+			//先解析出具体的table，询问master table的ip地址，然后连接到对应的region，执行sql语句
+			table_name:=client.prepocess_sql(input)
+			if table_name!=""{
+				//询问master table的ip地址
+				region_ip:=client.connect_to_master("Master.GetTableIP",table_name)
+				//连接到对应的region，执行sql语句
+				if region_ip!=""{
+					client.connect_to_region(region_ip,"Region.Query",input)
+				}
+
 			}
-			if call.Error != nil {
-				fmt.Println("RESULT>>> failed ",call.Error)
-			} else {
-				fmt.Println("RESULT>>> res: ",res)
-			}
+
 	}
 	
 
+}
+
+func (client *Client)prepocess_sql(input string)string{
+	var table string
+	words := strings.Split(input, " ")
+	if words[0] == "select" {
+		//select语句的表名放在from后面
+		for i := 0; i < len(words); i++ {
+			if words[i] == "from" && i != (len(words)-1) {
+				table = words[i+1]
+				break
+			}
+		}
+	} else if words[0] == "insert" || words[0] == "delete" {
+		if len(words) >= 3 {
+			table = words[2]
+		}
+	} else {
+		table=""
+	}
+	return table
 }
