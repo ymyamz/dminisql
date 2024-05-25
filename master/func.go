@@ -38,7 +38,7 @@ func (master *Master)TableCreate(input string, reply *string)  error {
 		if err!= nil {
 			fmt.Println("region return err ",err)
 		}
-		
+		master.tableIP[table_name] = best
 		*reply = res
 	}
 	fmt.Println("region return ",*reply)
