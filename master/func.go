@@ -55,9 +55,12 @@ func (master *Master)TableCreate(input string, reply *string)  error {
 		err := rpcRegion.Go("Region.Execute", input, &res, nil)
 		if err!= nil {
 			fmt.Println("region return err ",err)
+			*reply =  fmt.Sprintf("%v", err)  
+		}else{
+			master.tableIP[table_name] = best
+			util.AddToSlice(master.owntablelist[best], table_name)
+			*reply = "table created in region " + best
 		}
-		master.tableIP[table_name] = best
-		*reply = "table created in region " + best
 	}
 	fmt.Println("region return ",*reply)
 	return nil
@@ -127,3 +130,4 @@ func (master *Master) deleteTable(table, ip string) {
 	delete(master.tableIP, table)
 	util.DeleteFromSlice(master.owntablelist[ip], table)
 }
+

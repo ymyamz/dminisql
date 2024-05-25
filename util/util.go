@@ -57,3 +57,13 @@ func DeleteFromSlice(pSlice *[]string, str string) bool {
 	*pSlice = (*pSlice)[:len(*pSlice)-1]
 	return true
 }
+
+func AddToSlice(ptr *[]string, newString string) {  
+    // 如果指针为nil，创建一个新的切片  
+    if *ptr == nil {  
+        *ptr = make([]string, 0)  
+    }  
+  
+    // 添加新的字符串到切片中  
+    *ptr = append(*ptr, newString)  
+}  
