@@ -23,18 +23,24 @@ type Master struct {
 	tableIP      map[string]string // table->ip
 
 	backup	map[string]string // region server ip -> backup server ip
+	regionip_list []string
 
 }
-func (master *Master) Init(){
-	master.regionCount=len(util.Region_IPs)
-
+func (master *Master) Init(mode string){
+	//便于本地测试
+	if mode=="d"{
+		master.regionip_list=util.Region_IPs
+	}else{
+		master.regionip_list=util.Region_IPs_LOCAL
+	}
+	master.regionCount=len(master.regionip_list)
 	// etcd client init
 	// wait for update
 
 	//code阶段，先对region进行初始化，后续再进行优化
 	//遍历每一个region_ips，建立rpc连接
 	master.regionClients=make(map[string]*rpc.Client)
-	for _,region_ip := range util.Region_IPs{
+	for _,region_ip := range master.regionip_list{
 		client, err := rpc.DialHTTP("tcp", region_ip+util.REGION_PORT)
 		if err!= nil {
 			fmt.Println("master error >>> region rpc dial error:", err)
@@ -46,7 +52,7 @@ func (master *Master) Init(){
 
 	//初始化ip含有的table列表
 	master.owntablelist=make(map[string]*[]string)
-	for _,region_ip := range util.Region_IPs{
+	for _,region_ip := range master.regionip_list{
 		master.owntablelist[region_ip]=&[]string{}
 	}
 
@@ -91,7 +97,7 @@ func (master *Master) Run(){
 
 //把本地的db文件中的table信息同步
 func (master *Master)InitTableIP(){
-	for _,region_ip := range util.Region_IPs{
+	for _,region_ip := range master.regionip_list{
 		client:=master.regionClients[region_ip]
 
 		var res []string

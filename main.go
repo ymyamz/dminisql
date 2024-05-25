@@ -12,18 +12,34 @@ func main() {
 	args := os.Args  
 	// 获取类型client/master/region  
 	if len(args) > 1 {  
-		mode := args[1]  
+		mode := args[1]
+		//便于服务器测试  
+		var env string
+		if len(args)>2{
+			env = args[2]
+		}else{
+			env = "local"
+		}
+
 		switch mode {  
 		case "client":  
 			fmt.Println("Running in client mode")  
 			var client Client
-			client.Init()
+			if env=="d" {
+				client.Init("d")
+			}else{
+				client.Init("local")
+			}
 			client.Run()
 
 		case "master":  
 			fmt.Println("Running in master mode")  
 			var master Master
-			master.Init()
+			if env=="d" {
+				master.Init("d")
+			}else{
+				master.Init("local")
+			}
 			master.Run()
 
 		case "region":  

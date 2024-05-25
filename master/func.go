@@ -20,7 +20,7 @@ func (m *Master) TableShow(arg string, reply *string) error {
 	res="|"+ fmt.Sprintf(" %-15s |", "name")+ fmt.Sprintf(" %-15s |", "region_ip")+"\n"
 	res+="|-----------------|-----------------|\n"
 
-	for _,region_ip := range util.Region_IPs{
+	for _,region_ip := range m.regionip_list{
 		tables:=*m.owntablelist[region_ip]
 		for _,table := range tables{
 			res+="|"+ fmt.Sprintf(" %-15s |", table)+ fmt.Sprintf(" %-15s |", region_ip)+"\n"

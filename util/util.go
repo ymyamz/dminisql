@@ -21,8 +21,10 @@ const (
 	DB_FILEPATH   = "data.db"
 )
 var Region_IPs []string
+var Region_IPs_LOCAL []string
 func init() {
-	Region_IPs=[]string{"localhost"}
+	Region_IPs_LOCAL=[]string{"localhost"}
+	Region_IPs=[]string{"172.20.0.11","172.20.0.11"}
 }
 
 // rpc util
