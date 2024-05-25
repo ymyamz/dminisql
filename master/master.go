@@ -25,6 +25,8 @@ type Master struct {
 	backup	map[string]string // region server ip -> backup server ip
 	regionip_list []string
 
+	busy_operation_num map[string]int // operations for each region in 1 minute, > BUSY_THRESHOLD deemed as busy
+
 }
 func (master *Master) Init(mode string){
 	//便于本地测试
@@ -48,6 +50,7 @@ func (master *Master) Init(mode string){
 		}
 		fmt.Println("master init >>> region rpc dial success:", region_ip)
 		master.regionClients[region_ip] = client
+		master.busy_operation_num[region_ip] = 0
 	}
 
 	//初始化ip含有的table列表

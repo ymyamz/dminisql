@@ -19,6 +19,7 @@ const (
 	//DB_FILEPATH   = "/data/app/etcd/data.db"
 	//本地使用：
 	DB_FILEPATH   = "data.db"
+	BUSY_THRESHOLD = 100
 )
 var Region_IPs []string
 var Region_IPs_LOCAL []string

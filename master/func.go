@@ -16,12 +16,14 @@ func (m *Master) CallTest(arg string, reply *string) error {
 //直接查看owntablelsit查询所有region的table，以表格形式返回所有table以及其所属regionip
 func (m *Master) TableShow(arg string, reply *string) error {  
 	fmt.Println("master tableshow.called")
+	m.check_and_reset_Regions()
 	var res string
 	res="|"+ fmt.Sprintf(" %-15s |", "name")+ fmt.Sprintf(" %-15s |", "region_ip")+"\n"
 	res+="|-----------------|-----------------|\n"
 
 	for _,region_ip := range m.regionip_list{
 		tables:=*m.owntablelist[region_ip]
+		m.busy_operation_num[region_ip] += 1
 		for _,table := range tables{
 			res+="|"+ fmt.Sprintf(" %-15s |", table)+ fmt.Sprintf(" %-15s |", region_ip)+"\n"
 		}
@@ -33,6 +35,7 @@ func (m *Master) TableShow(arg string, reply *string) error {
 
 func (master *Master)TableCreate(input string, reply *string)  error {  
 	fmt.Println("master tablecreate.called")
+	master.check_and_reset_Regions()
 	items:=strings.Split(input, " ")
 	table_name:=items[2]  
 	_, found := master.tableIP[table_name]
@@ -42,13 +45,14 @@ func (master *Master)TableCreate(input string, reply *string)  error {
 		//寻找table数最少的节点
 		min, best := math.MaxInt, ""
 		for ip, pTables := range master.owntablelist {
-			if len(*pTables) < min {
+			if len(*pTables) < min && master.busy_operation_num[ip]<util.BUSY_THRESHOLD{
 				min, best = len(*pTables), ip
 			}
 		}
 
 		rpcRegion:=master.regionClients[best]
 		fmt.Println("best_ip:",best)
+		master.busy_operation_num[best] += 1
 
 		var res string
 		//创建表
@@ -65,7 +69,10 @@ func (master *Master)TableCreate(input string, reply *string)  error {
 //test
 func (master *Master)QueryReigon(input string, reply *string)  error {  
 	fmt.Println("master.query called")
+	// TODO Change the ip
 	rpcRegion:=master.regionClients["localhost"]
+	master.busy_operation_num["localhost"] += 1
+	master.check_and_reset_Regions()
 	var res string
 
 	call, err := util.TimeoutRPC(rpcRegion.Go("Region.Query", input, &res, nil), util.TIMEOUT_M)
@@ -126,4 +133,19 @@ func (master *Master) deleteTable(table, ip string) {
 	// master.deleteTableIndices(table)
 	delete(master.tableIP, table)
 	util.DeleteFromSlice(master.owntablelist[ip], table)
+}
+
+func (master *Master)check_and_reset_Regions()  error {
+	all_busy := true
+	for _,region_ip := range m.regionip_list{
+		if m.busy_operation_num[region_ip] < util.BUSY_THRESHOLD{
+			all_busy = false
+		}
+	}
+	if all_busy{
+		for _,region_ip := range m.regionip_list{
+			m.busy_operation_num[region_ip] = 0
+		}
+	}
+	return nil
 }

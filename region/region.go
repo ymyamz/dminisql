@@ -13,7 +13,6 @@ import (
 )
 type Region struct {
 	db *sql.DB
-
 }
 func (region *Region) Init() {
 	//连接数据库文件

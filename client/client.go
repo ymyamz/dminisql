@@ -107,7 +107,7 @@ func (client *Client)parse_sql_statement(input string){
 	items:=strings.Split(input, " ")
 	//if sql is create
 	switch items[0] {
-
+		
 		case "create":
 			if items[1]=="table"{
 				call_func:="Master.TableCreate"
