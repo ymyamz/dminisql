@@ -61,6 +61,7 @@ func (master *Master)TableCreate(input string, reply *string)  error {
 			fmt.Println("region return err ",err)
 		}
 		master.tableIP[table_name] = best
+		util.AddToSlice(master.owntablelist[best], table_name)
 		*reply = "table created in region " + best
 	}
 	fmt.Println("region return ",*reply)
