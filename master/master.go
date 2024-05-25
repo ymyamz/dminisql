@@ -18,13 +18,18 @@ type Master struct {
 	//ip->client
 	regionClients map[string]*rpc.Client
 	//ip含有的table列表
-	owntablelist map[string]*[]string 
+	owntablelist map[string]*[]string  // ip->tables
 	//该table所在region的ip
-	tableIP      map[string]string
+	tableIP      map[string]string // table->ip
+
+	backup	map[string]string // region server ip -> backup server ip
 
 }
 func (master *Master) Init(){
 	master.regionCount=len(util.Region_IPs)
+
+	// etcd client init
+	// wait for update
 
 	//code阶段，先对region进行初始化，后续再进行优化
 	//遍历每一个region_ips，建立rpc连接
@@ -46,8 +51,9 @@ func (master *Master) Init(){
 	}
 
 	//初始化该table所在region的ip
-	//TODO
+	master.tableIP = make(map[string]string)
 
+	master.backup = make(map[string]string)
 	
 }
 
