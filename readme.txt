@@ -23,5 +23,10 @@ go run main.go master
 go run main.go client
 
 2，在client终端输入以下命令：
-create table suer(name TEXT,address TEXT);
+create table user(name TEXT,address TEXT);
 show tables;
+
+INSERT INTO user (name, address) VALUES ('John Doe', '123 Main Street');  
+可以看到client输出向master询问table所在ip的结果
+SELECT * FROM user;  
+可以看到执行结果
