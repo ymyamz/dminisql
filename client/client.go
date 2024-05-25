@@ -115,6 +115,11 @@ func (client *Client)parse_sql_statement(input string){
 				client.connect_to_master(call_func,input_showtables)
 
 			}
+		case "drop":
+			if items[1]=="table"{
+				call_func:="Master.TableDrop"
+				client.connect_to_master(call_func,input)
+			}
 
 		//其他默认执行
 		default:
