@@ -55,10 +55,10 @@ func (master *Master) getAvailableRegions()[]string {
 		fmt.Printf("master error >>> etcd get regions error: %v", err)
 	}
 	for _, region := range regions.Kvs {
-		IP := string(region.Value)
+		IP := string(region.Key)
 		available_list = append(available_list, IP)
 	}
-
+	
 	return available_list
 
 }
