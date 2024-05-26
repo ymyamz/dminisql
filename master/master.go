@@ -22,7 +22,9 @@ type Master struct {
 	Backup           map[string]string    // region server ip -> Backup server ip
 	Available        string               // available regions
 	RegionIPList     []string
-	BusyOperationNum map[string]int // operations for each region in 1 minute, > BUSY_THRESHOLD deemed as busy
+	BusyOperationNum map[string]int       // operations for each region in 1 minute, > BUSY_THRESHOLD deemed as busy
+	IndexInfo        map[string]string    // index->table
+	TableIndex       map[string]*[]string // table->indexs
 }
 
 // SerializableMaster is used for selective serialization
@@ -33,7 +35,9 @@ type SerializableMaster struct {
 	Backup           map[string]string    // region server ip -> backup server ip
 	Available        string               // available regions
 	RegionIPList     []string
-	BusyOperationNum map[string]int // operations for each region in 1 minute, > BUSY_THRESHOLD deemed as busy
+	BusyOperationNum map[string]int       // operations for each region in 1 minute, > BUSY_THRESHOLD deemed as busy
+	IndexInfo        map[string]string    // index->table
+	TableIndex       map[string]*[]string // table->indexs
 }
 
 func (master *Master) toSerializable() *SerializableMaster {
@@ -45,6 +49,8 @@ func (master *Master) toSerializable() *SerializableMaster {
 		Available:        master.Available,
 		RegionIPList:     master.RegionIPList,
 		BusyOperationNum: master.BusyOperationNum,
+		IndexInfo:        master.IndexInfo,
+		TableIndex:       master.TableIndex,
 	}
 }
 
@@ -56,9 +62,11 @@ func (master *Master) fromSerializable(serializableMaster *SerializableMaster) {
 	master.Available = serializableMaster.Available
 	master.RegionIPList = serializableMaster.RegionIPList
 	master.BusyOperationNum = serializableMaster.BusyOperationNum
+	master.IndexInfo = serializableMaster.IndexInfo
+	master.TableIndex = serializableMaster.TableIndex
 }
 
-func (master *Master) SaveToFile(filename string,reply *string) error {
+func (master *Master) SaveToFile(filename string, reply *string) error {
 	fmt.Println("Saving Master struct to file...")
 	file, err := os.Create(filename)
 	if err != nil {
@@ -124,6 +132,9 @@ func LoadFromFile(filename string) (*SerializableMaster, error) {
 // 		master.Owntablelist[region_ip] = &[]string{}
 // 	}
 
+//	//初始化索引
+//	master.IndexInfo = make(map[string]string)
+//	master.TableIndex = make(map[string]*[]string)
 // 	//初始化该table所在region的ip
 // 	//TODO
 // 	master.TableIP = make(map[string]string)
@@ -137,7 +148,7 @@ func (master *Master) Init(mode string) {
 	// Attempt to load from file
 	serializableMaster, err := LoadFromFile("master.gob")
 	master.RegionClients = make(map[string]*rpc.Client)
-	master.Backup=make(map[string]string)
+	master.Backup = make(map[string]string)
 	if err == nil {
 		// Successfully loaded from file
 		master.fromSerializable(serializableMaster)
@@ -156,23 +167,22 @@ func (master *Master) Init(mode string) {
 		// Proceed with initialization if loading fails
 		fmt.Println("Initializing Master struct...")
 		//load from etcd
-		
+
 		// if mode == "d" {
 		// 	master.RegionIPList = util.Region_IPs
 		// } else {
 		// 	master.RegionIPList = util.Region_IPs_LOCAL
 		// }
-		available_list:=master.getAvailableRegions()
-		fmt.Println("Available regions:",available_list)
+		available_list := master.getAvailableRegions()
+		fmt.Println("Available regions:", available_list)
 		master.assignment(available_list)
 		//打印分配后的结果（Available，RegionIPList）
-		
-		fmt.Println("Available regions:",master.Available)
+
+		fmt.Println("Available regions:", master.Available)
 		for i, region_ip := range master.RegionIPList {
-			fmt.Println("Region", i, ":", region_ip," backup:", master.Backup[region_ip])
+			fmt.Println("Region", i, ":", region_ip, " backup:", master.Backup[region_ip])
 		}
 		//有待初始化region的backup
-
 
 		master.RegionCount = len(master.RegionIPList)
 		master.BusyOperationNum = make(map[string]int)
@@ -192,6 +202,10 @@ func (master *Master) Init(mode string) {
 			master.BusyOperationNum[region_ip] = 0
 		}
 
+		//初始化索引
+		master.IndexInfo = make(map[string]string)
+		master.TableIndex = make(map[string]*[]string)
+
 		// Initialize owntablelist
 		master.Owntablelist = make(map[string]*[]string)
 		for _, region_ip := range master.RegionIPList {
@@ -208,7 +222,7 @@ func (master *Master) Init(mode string) {
 
 	// Save to file after initialization
 	var reply string
-	err = master.SaveToFile("master.gob",&reply)
+	err = master.SaveToFile("master.gob", &reply)
 	if err != nil {
 		fmt.Println("Error saving to file:", err)
 	}
@@ -218,7 +232,7 @@ func (master *Master) Run() {
 	fmt.Println("master init and listening ")
 	//初始化etcd集群
 	var err error
-	master.EtcdClient, err= clientv3.New(clientv3.Config{
+	master.EtcdClient, err = clientv3.New(clientv3.Config{
 		Endpoints:   []string{util.ETCD_ENDPOINT},
 		DialTimeout: 1 * time.Second,
 	})
@@ -262,6 +276,7 @@ func (master *Master) InitTableIP() {
 		//更新本地的tableIP和owntablelist
 		for _, table := range res {
 			master.TableIP[table] = region_ip
+			master.InitIndex(table) //根据table初始化索引
 		}
 		master.Owntablelist[region_ip] = &res
 	}
@@ -288,4 +303,43 @@ func (master *Master) addRegion(region_ip string) {
 	master.RegionClients[region_ip] = client
 	master.BusyOperationNum[region_ip] = 0
 	master.Owntablelist[region_ip] = &[]string{}
+}
+
+// 把本地的db文件中的index信息同步
+// SELECT * FROM sqlite_master
+// WHERE type='index' AND tbl_name='your_table_name';
+
+func (master *Master) InitIndex(table string) {
+	//for _, table := range master.tableIP {
+	ip := master.TableIP[table]
+	client := master.RegionClients[ip]
+
+	//fmt.Println("table=", table, "ip=", ip, "client=", client)
+
+	var res []string
+	call, err := util.TimeoutRPC(client.Go("Region.Index", table, &res, nil), util.TIMEOUT_M)
+
+	if err != nil {
+		fmt.Println("SYSTEM HINT>>> timeout, region down!")
+	}
+	if call.Error != nil {
+		fmt.Println("RESULT>>> failed ", call.Error)
+	} else {
+		fmt.Println("RESULT>>> res: \n", res)
+	}
+	//打印返回的index列表
+	fmt.Println("table:", table, "index list:", res)
+
+	//更新
+	for _, index := range res {
+		//todo
+		if index != "failedinquery" && index != "failedinscan" {
+
+			master.IndexInfo[index] = table
+		}
+		master.TableIndex[table] = &res
+	}
+
+	//}
+
 }
