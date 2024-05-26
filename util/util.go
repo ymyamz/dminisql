@@ -15,7 +15,7 @@ const (
 	MASTER_IP_LOCAL       = "localhost"
 	MASTER_PORT   = ":4095"
 	REGION_PORT   = ":5095"
-	ETCD_ENDPOINT = "127.0.0.1:20079"
+	ETCD_ENDPOINT = "127.0.0.1:2379"
 	//DB_FILEPATH   = "/data/app/etcd/data.db"
 	//本地使用：
 	DB_FILEPATH   = "data.db"

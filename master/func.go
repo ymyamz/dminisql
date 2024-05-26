@@ -117,7 +117,7 @@ func (master *Master) TableDrop(input string, reply *string) error {
         
         // 检查远程过程调用是否成功
         if call.Error != nil {
-            fmt.Println("%v region process table drop failed", ip)
+            fmt.Printf("%v region process table drop failed", ip)
             return call.Error
         }
         
@@ -136,7 +136,7 @@ func (master *Master) deleteTable(table, ip string) {
 	util.DeleteFromSlice(master.owntablelist[ip], table)
 }
 
-func (master *Master)check_and_reset_Regions()  error {
+func (m *Master)check_and_reset_Regions()  error {
 	all_busy := true
 	for _,region_ip := range m.regionip_list{
 		if m.busy_operation_num[region_ip] < util.BUSY_THRESHOLD{
