@@ -46,26 +46,6 @@ func (region *Region) Init() {
 	}
 	defer region.db.Close()
 	fmt.Printf("Database connection successful\n")
-	_, e:= region.db.Exec("create table user (name TEXT,address TEXT)")
-	if e != nil {
-		fmt.Printf("Database creation failed: %v\n", e)
-		return
-	}
-	row, ee:= region.db.Query("SELECT name FROM sqlite_master WHERE type='table'")  
-    if ee != nil {  
-        fmt.Printf("Query failed: %v\n", ee)  
- 
-	}
-	for row.Next() {
-		var name string
-		err = row.Scan(&name)
-		if err != nil {  
-			fmt.Printf("Scan failed: %v\n", err)  
-		}
-		fmt.Printf("Table name: %s\n", name)
-	}
-
-
 
 	//注册RPC服务
 	// 注册rpc函数
