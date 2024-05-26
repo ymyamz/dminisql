@@ -65,6 +65,7 @@ func (client *Client) Run(){
 		input = strings.ReplaceAll(input, "\\s+", " ")
 
 		if input == "exit" {
+			
 			break
 		}
 		//TODO sparse

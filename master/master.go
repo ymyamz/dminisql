@@ -20,6 +20,7 @@ type Master struct {
 	Owntablelist     map[string]*[]string // ip -> tables
 	TableIP          map[string]string    // table -> ip
 	Backup           map[string]string    // region server ip -> Backup server ip
+	Available        string               // available regions
 	RegionIPList     []string
 	BusyOperationNum map[string]int // operations for each region in 1 minute, > BUSY_THRESHOLD deemed as busy
 }
@@ -30,6 +31,7 @@ type SerializableMaster struct {
 	Owntablelist     map[string]*[]string // ip -> tables
 	TableIP          map[string]string    // table -> ip
 	Backup           map[string]string    // region server ip -> backup server ip
+	Available        string               // available regions
 	RegionIPList     []string
 	BusyOperationNum map[string]int // operations for each region in 1 minute, > BUSY_THRESHOLD deemed as busy
 }
@@ -40,6 +42,7 @@ func (master *Master) toSerializable() *SerializableMaster {
 		Owntablelist:     master.Owntablelist,
 		TableIP:          master.TableIP,
 		Backup:           master.Backup,
+		Available:        master.Available,
 		RegionIPList:     master.RegionIPList,
 		BusyOperationNum: master.BusyOperationNum,
 	}
@@ -50,11 +53,13 @@ func (master *Master) fromSerializable(serializableMaster *SerializableMaster) {
 	master.Owntablelist = serializableMaster.Owntablelist
 	master.TableIP = serializableMaster.TableIP
 	master.Backup = serializableMaster.Backup
+	master.Available = serializableMaster.Available
 	master.RegionIPList = serializableMaster.RegionIPList
 	master.BusyOperationNum = serializableMaster.BusyOperationNum
 }
 
-func (master *Master) SaveToFile(filename string) error {
+func (master *Master) SaveToFile(filename string,reply *string) error {
+	fmt.Println("Saving Master struct to file...")
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -149,12 +154,25 @@ func (master *Master) Init(mode string) {
 	} else {
 		// Proceed with initialization if loading fails
 		fmt.Println("Initializing Master struct...")
-
-		if mode == "d" {
-			master.RegionIPList = util.Region_IPs
-		} else {
-			master.RegionIPList = util.Region_IPs_LOCAL
+		//load from etcd
+		
+		// if mode == "d" {
+		// 	master.RegionIPList = util.Region_IPs
+		// } else {
+		// 	master.RegionIPList = util.Region_IPs_LOCAL
+		// }
+		available_list:=master.getAvailableRegions()
+		fmt.Println("Available regions:",available_list)
+		master.assignment(available_list)
+		//打印分配后的结果（Available，RegionIPList）
+		
+		fmt.Println("Available regions:",master.Available)
+		for i, region_ip := range master.RegionIPList {
+			fmt.Println("Region", i, ":", region_ip," backup:", master.Backup[region_ip])
 		}
+		//有待初始化region的backup
+
+
 		master.RegionCount = len(master.RegionIPList)
 		master.BusyOperationNum = make(map[string]int)
 		master.RegionClients = make(map[string]*rpc.Client)
@@ -188,7 +206,8 @@ func (master *Master) Init(mode string) {
 	}
 
 	// Save to file after initialization
-	err = master.SaveToFile("master.gob")
+	var reply string
+	err = master.SaveToFile("master.gob",&reply)
 	if err != nil {
 		fmt.Println("Error saving to file:", err)
 	}
@@ -197,15 +216,15 @@ func (master *Master) Init(mode string) {
 func (master *Master) Run() {
 	fmt.Println("master init and listening ")
 	//初始化etcd集群
-	// var err error
-	// master.EtcdClient, err= clientv3.New(clientv3.Config{
-	// 	Endpoints:   []string{util.ETCD_ENDPOINT},
-	// 	DialTimeout: 1 * time.Second,
-	// })
-	// if err != nil {
-	// 	fmt.Printf("master error >>> etcd connect error: %v", err)
-	// }
-	// defer master.EtcdClient.Close()
+	var err error
+	master.EtcdClient, err= clientv3.New(clientv3.Config{
+		Endpoints:   []string{util.ETCD_ENDPOINT},
+		DialTimeout: 1 * time.Second,
+	})
+	if err != nil {
+		fmt.Printf("master error >>> etcd connect error: %v", err)
+	}
+	defer master.EtcdClient.Close()
 
 	// 注册rpc函数
 	rpc.Register(master)
