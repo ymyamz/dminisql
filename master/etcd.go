@@ -14,6 +14,7 @@ import (
 //如果list是单数，返回相对应的主从server和backup字符串数组，和一个落单的avaiable;
 //如果list是双数，返回相对应的主从server和backup字符串数组，avaiable=""。
 func (master *Master) assignment(available_list []string) {
+
 	if len(available_list) % 2 == 1 {
 		num:=(len(available_list)+1)/2
 		master.Available= available_list[0]

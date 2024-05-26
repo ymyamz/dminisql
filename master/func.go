@@ -98,8 +98,8 @@ func (master *Master) TableDrop(input string, reply *string) error {
 
 	// 解析输入命令，获取要删除的表名
 	items := strings.Split(input, " ")
-	//table_name := items[2]
-	table_name := extractTable(items[2])
+	table_name := items[2]
+	//table_name := extractTable(items[2])
 
 	// 检查要删除的表是否存在
 	_, found := master.TableIP[table_name]
