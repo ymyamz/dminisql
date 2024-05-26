@@ -20,7 +20,7 @@ const (
 	ETCD_ENDPOINT = "127.0.0.1:2379"
 	//DB_FILEPATH   = "/data/app/etcd/data.db"
 	//本地使用：
-	DB_FILEPATH   = "data/data.db"
+	DB_FILEPATH   = "./data/data.db"
 	BUSY_THRESHOLD = 100
 	REMOTE_WORKING_DIR="/data/gopath/dminisql/data"
 	LOCAL_WORKING_DIR="data"
