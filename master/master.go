@@ -183,7 +183,7 @@ func (master *Master) Init(mode string) {
 			fmt.Println("Region", i, ":", region_ip, " backup:", master.Backup[region_ip])
 		}
 		//有待初始化region的backup
-
+		
 		master.RegionCount = len(master.RegionIPList)
 		master.BusyOperationNum = make(map[string]int)
 		master.RegionClients = make(map[string]*rpc.Client)
