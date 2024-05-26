@@ -2,7 +2,9 @@ package util
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/rpc"
+	"os"
 	"time"
 )
 
@@ -18,8 +20,11 @@ const (
 	ETCD_ENDPOINT = "127.0.0.1:2379"
 	//DB_FILEPATH   = "/data/app/etcd/data.db"
 	//本地使用：
-	DB_FILEPATH   = "data.db"
+	DB_FILEPATH   = "data/data.db"
 	BUSY_THRESHOLD = 100
+	REMOTE_WORKING_DIR="/data/gopath/dminisql/data"
+	LOCAL_WORKING_DIR="data"
+
 )
 var Region_IPs []string
 var Region_IPs_LOCAL []string
@@ -68,3 +73,13 @@ func AddToSlice(ptr *[]string, newString string) {
     // 添加新的字符串到切片中  
     *ptr = append(*ptr, newString)  
 }  
+
+func CleanDir(localDir string) {
+	dir, err := ioutil.ReadDir(localDir)
+	if err != nil {
+		fmt.Println("Can't obtain files in dir")
+	}
+	for _, d := range dir {
+		os.RemoveAll(localDir + d.Name())
+	}
+}

@@ -20,9 +20,12 @@ type Region struct {
 	hostIP string
 	backupIP string
 	backupClient *rpc.Client
+	fu           FtpUtils
 
 }
 func (region *Region) Init() {
+
+	region.fu.Construct()
 
 	region.hostIP = region.foundhostIP()
 	var err error
@@ -124,3 +127,5 @@ func (region *Region)foundhostIP()string{
 	
 
 }
+
+

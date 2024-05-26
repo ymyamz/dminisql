@@ -134,7 +134,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 	} else {
 		region.backupClient = client
 		region.backupIP = ip
-		_, err = util.TimeoutRPC(region.backupClient.Go("Region.DownloadFile", region.hostIP, &dummyReply, nil), util.TIMEOUT_L)
+		_, err = util.TimeoutRPC(region.backupClient.Go("Region.DownloadSnapshot", region.hostIP, &dummyReply, nil), util.TIMEOUT_L)
 		if err != nil {
 			log.Printf("%v's Region.DownloadSnapshot timeout", ip)
 			region.RemoveBackup(nil, nil)
@@ -151,5 +151,14 @@ func (region *Region) RemoveBackup(dummyArgs, dummyReply *bool) error {
 		region.backupClient.Close()
 	}
 	region.backupClient = nil
+	return nil
+}
+
+func (region *Region) DownloadSnapshot(ip string, dummyReply *bool) error {
+	log.Printf("Region.DownloadSnapshot called: download %v's snapshot", ip)
+	region.RemoveBackup(nil, nil)
+	region.fu.DownloadDir(util.REMOTE_WORKING_DIR, util.LOCAL_WORKING_DIR, ip)
+	//重新初始化
+
 	return nil
 }
