@@ -17,14 +17,14 @@ master默认为etcd-node1,172.20.0.10！！！client可以随便在哪里节点�
 然后etcd-node2,3运行go run main.go region d
 
 可测试指令如下：
-create table user (name TEXT,address TEXT);
+create table user(name TEXT,address TEXT);
 show tables;
 
 INSERT INTO user (name, address) VALUES ('John Doe', '123 Main Street');  
 SELECT * FROM user;  
 
 
-CREATE INDEX index_name ON table_name (name);
+CREATE INDEX index_name ON table_name(name);
 show indexes;
 DROP INDEX index_name;
 （旧的init可以运行，新的好像有问题）
