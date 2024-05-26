@@ -37,7 +37,8 @@ func (master *Master) TableCreate(input string, reply *string) error {
 	fmt.Println("master tablecreate.called")
 	master.check_and_reset_Regions()
 	items := strings.Split(input, " ")
-	table_name := items[2]
+	//table_name := items[2]
+	table_name := extractTable(items[2])
 	_, found := master.TableIP[table_name]
 	if found {
 		*reply = "table already exists"
@@ -97,7 +98,8 @@ func (master *Master) TableDrop(input string, reply *string) error {
 
 	// 解析输入命令，获取要删除的表名
 	items := strings.Split(input, " ")
-	table_name := items[2]
+	//table_name := items[2]
+	table_name := extractTable(items[2])
 
 	// 检查要删除的表是否存在
 	_, found := master.TableIP[table_name]
@@ -152,6 +154,34 @@ func (master *Master) check_and_reset_Regions() error {
 	return nil
 }
 
+// 提取table名
+// 规则:若有(等特殊字符，table名需要用[]框起来
+func extractTable(s string) string {
+	if len(s) == 0 {
+		return ""
+	}
+
+	if s[0] == '[' {
+		// 查找']'的位置
+		for i, char := range s {
+			if char == ']' {
+				// 返回']'和'['之间的字符串
+				return s[1:i]
+			}
+		}
+	} else {
+		// 查找'（'的位置
+		for i, char := range s {
+			if char == '(' {
+				// 返回找到的'('前的字符串
+				return s[:i]
+			}
+		}
+	}
+
+	return ""
+}
+
 // 创建索引
 func (master *Master) IndexCreate(input string, reply *string) error {
 	fmt.Println("master indexcreate.called")
@@ -162,7 +192,7 @@ func (master *Master) IndexCreate(input string, reply *string) error {
 		*reply = "Index already exists"
 		return nil
 	}
-	table_name := items[4]
+	table_name := extractTable(items[4])
 
 	_, found1 := master.TableIP[table_name]
 	if !found1 {
