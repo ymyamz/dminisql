@@ -271,6 +271,9 @@ func (master *Master) InitTableIP() {
 		} else {
 			fmt.Println("RESULT>>> res: \n", res)
 		}
+		if res[0]=="failedinquery"{
+			continue
+		}
 		//打印返回的table列表
 		fmt.Println("region_ip:", region_ip, "table list:", res)
 		//更新本地的tableIP和owntablelist
