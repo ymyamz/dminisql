@@ -29,8 +29,6 @@ func (master *Master) assignment(available_list []string) {
 		master.Available= ""
 		master.RegionIPList= available_list[:num]
 		back_list:=available_list[num:]
-		fmt.Println("avaiable_list:",back_list)
-		fmt.Println("RegionIPList:",master.RegionIPList)
 		for i := 0; i < num; i++ { 
 			master.Backup[master.RegionIPList[i]]=back_list[i]
 		}

@@ -137,6 +137,7 @@ func (master *Master) Init(mode string) {
 	// Attempt to load from file
 	serializableMaster, err := LoadFromFile("master.gob")
 	master.RegionClients = make(map[string]*rpc.Client)
+	master.Backup=make(map[string]string)
 	if err == nil {
 		// Successfully loaded from file
 		master.fromSerializable(serializableMaster)
