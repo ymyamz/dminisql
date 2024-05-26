@@ -18,6 +18,9 @@ type Region struct {
 	db *sql.DB
 	etcdClient   *clientv3.Client
 	hostIP string
+	backupIP string
+	backupClient *rpc.Client
+
 }
 func (region *Region) Init() {
 

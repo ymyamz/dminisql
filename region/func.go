@@ -1,7 +1,10 @@
 package region
 
 import (
+	"distribute-sql/util"
 	"fmt"
+	"log"
+	"net/rpc"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -44,6 +47,20 @@ func (region *Region)Execute(input string, reply *string) error {
 		return nil
 	}
 	*reply = "Execute success"
+
+	if region.backupIP != "" {
+		rpcBackupRegion, err := rpc.DialHTTP("tcp", region.backupIP+util.REGION_PORT)
+		if err != nil {
+			log.Printf("fail to connect to backup %v", region.backupIP)
+			return nil
+		}
+		// backup's Region.Process must return nil error
+		_, err =util.TimeoutRPC(rpcBackupRegion.Go("Region.Execute", &input, &reply, nil), util.TIMEOUT_S)
+		if err != nil {
+			log.Printf("%v's Region.Process timeout", region.backupIP)
+			return nil
+		}
+	}
 	return nil
 }
 
@@ -104,5 +121,35 @@ func (region *Region) Query(input string, reply *string) error{
 		response += rowOutput + "\n"  
 	}  
 	*reply=response
+	return nil
+}
+
+
+//给server region分配backup，由server给backup下载data.db
+func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
+	fmt.Printf("Region.AssignBackup called: backup ip: %v", ip)
+	client, err := rpc.DialHTTP("tcp", ip+util.REGION_PORT)
+	if err != nil {
+		log.Printf("rpc.DialHTTP err: %v", ip+util.REGION_PORT)
+	} else {
+		region.backupClient = client
+		region.backupIP = ip
+		_, err = util.TimeoutRPC(region.backupClient.Go("Region.DownloadFile", region.hostIP, &dummyReply, nil), util.TIMEOUT_L)
+		if err != nil {
+			log.Printf("%v's Region.DownloadSnapshot timeout", ip)
+			region.RemoveBackup(nil, nil)
+		}
+	}
+	return err
+}
+
+//backup挂了，通知server删除backup
+func (region *Region) RemoveBackup(dummyArgs, dummyReply *bool) error {
+	log.Printf("Region.RemoveBackup called: remove %v", region.backupIP)
+	region.backupIP = ""
+	if region.backupClient != nil {
+		region.backupClient.Close()
+	}
+	region.backupClient = nil
 	return nil
 }

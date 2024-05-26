@@ -23,8 +23,9 @@ type Master struct {
 	tableIP      map[string]string // table->ip
 
 	backup	map[string]string // region server ip -> backup server ip
-	regionip_list []string
-
+	available string //avalable 只有可能有一个
+	regionip_list []string	//仅保存server的ip
+	
 	busy_operation_num map[string]int // operations for each region in 1 minute, > BUSY_THRESHOLD deemed as busy
 
 }
@@ -37,27 +38,15 @@ func (master *Master) Init(mode string){
 	}
 	master.regionCount=len(master.regionip_list)
 	master.busy_operation_num=make(map[string]int)
+	master.owntablelist=make(map[string]*[]string)
 	// etcd client init
 	// wait for update
 
-	//code阶段，先对region进行初始化，后续再进行优化
-	//遍历每一个region_ips，建立rpc连接
+
+	//遍历每一个region_ips，建立rpc连接,初始化tableIP和owntablelist
 	master.regionClients=make(map[string]*rpc.Client)
 	for _,region_ip := range master.regionip_list{
-		client, err := rpc.DialHTTP("tcp", region_ip+util.REGION_PORT)
-		if err!= nil {
-			fmt.Println("master error >>> region rpc dial error:", err)
-			return
-		}
-		fmt.Println("master init >>> region rpc dial success:", region_ip)
-		master.regionClients[region_ip] = client
-		master.busy_operation_num[region_ip] = 0
-	}
-
-	//初始化ip含有的table列表
-	master.owntablelist=make(map[string]*[]string)
-	for _,region_ip := range master.regionip_list{
-		master.owntablelist[region_ip]=&[]string{}
+		master.addRegion(region_ip)
 	}
 
 	//初始化该table所在region的ip
@@ -135,3 +124,15 @@ func (master *Master)GetTableIP(table string,reply *string) error{
 	return nil
 }
 
+//用于初始化和后续加入region的连接
+func (master *Master)addRegion(region_ip string){
+	client, err := rpc.DialHTTP("tcp", region_ip+util.REGION_PORT)
+	if err!= nil {
+		fmt.Println("master error >>> region rpc dial error:", err)
+		return
+	}
+	fmt.Println("master init >>> region rpc dial success:", region_ip)
+	master.regionClients[region_ip] = client
+	master.busy_operation_num[region_ip] = 0
+	master.owntablelist[region_ip]=&[]string{}
+}
