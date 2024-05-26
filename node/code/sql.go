@@ -154,7 +154,7 @@ func show_sql(input string) {
 		select_sql("SELECT name FROM sqlite_master WHERE type='table'")
 	} else if(input=="show databases"){
 		//查询sqlite返回当前数据库名称
-		//TODO
+
 	} else{
 		fmt.Println("Invalid show command")
 	}	

@@ -12,7 +12,6 @@ import (
 // master初始化使用
 // 返回当前有什么table
 func (region *Region) TableName(input string, reply *[]string) error {
-	//TODO
 	fmt.Println("Return TABLENAME in region")
 	rows, err := region.db.Query("SELECT name FROM sqlite_master WHERE type='table'")
 	if err != nil {
@@ -41,7 +40,6 @@ func (region *Region) TableName(input string, reply *[]string) error {
 // SELECT * FROM sqlite_master
 // WHERE type='index' AND tbl_name='your_table_name';
 func (region *Region) Index(input string, reply *[]string) error {
-	//TODO
 	fmt.Println("Return Index in region,table:", input)
 	rows, err := region.db.Query("SELECT name FROM sqlite_master WHERE type='index'AND tbl_name= ? ", input)
 	if err != nil {
@@ -97,7 +95,7 @@ func (region *Region) Execute(input string, reply *string) error {
 
 // 查询类
 func (region *Region) Query(input string, reply *string) error {
-	//TODO
+
 	fmt.Println("Query called")
 	rows, err := region.db.Query(input)
 	if err != nil {
@@ -164,30 +162,12 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 	} else {
 		region.backupClient = client
 		region.backupIP = ip
-		_, err = util.TimeoutRPC(region.backupClient.Go("Region.DownloadSnapshot", region.hostIP, &dummyReply, nil), util.TIMEOUT_L)
-		if err != nil {
-			log.Printf("%v's Region.DownloadSnapshot timeout", ip)
-			region.RemoveBackup(nil, nil)
-		}
+		//TODO 通知backup下载data.db,注意先删除backup本地可能存在的data.db
+		//TODO
+
 	}
 	return err
 }
 
-// backup挂了，通知server删除backup
-func (region *Region) RemoveBackup(dummyArgs, dummyReply *bool) error {
-	log.Printf("Region.RemoveBackup called: remove %v", region.backupIP)
-	region.backupIP = ""
-	if region.backupClient != nil {
-		region.backupClient.Close()
-	}
-	region.backupClient = nil
-	return nil
-}
-
-func (region *Region) DownloadSnapshot(ip string, dummyReply *bool) error {
-	log.Printf("Region.DownloadSnapshot called: download %v's snapshot", ip)
-	region.RemoveBackup(nil, nil)
-	//重新初始化
-
-	return nil
-}
+//写一个转存函数，将region的data.db中的数据转存到best ip pair中？？
+//TODO

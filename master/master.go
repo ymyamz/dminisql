@@ -136,7 +136,7 @@ func LoadFromFile(filename string) (*SerializableMaster, error) {
 //	master.IndexInfo = make(map[string]string)
 //	master.TableIndex = make(map[string]*[]string)
 // 	//初始化该table所在region的ip
-// 	//TODO
+
 // 	master.TableIP = make(map[string]string)
 // 	master.InitTableIP()
 
@@ -149,6 +149,7 @@ func (master *Master) Init(mode string) {
 	serializableMaster, err := LoadFromFile("master.gob")
 	master.RegionClients = make(map[string]*rpc.Client)
 	master.Backup = make(map[string]string)
+	master.Available = ""
 	if err == nil {
 		// Successfully loaded from file
 		master.fromSerializable(serializableMaster)
@@ -295,18 +296,7 @@ func (master *Master) GetTableIP(table string, reply *string) error {
 	return nil
 }
 
-// 用于初始化和后续加入region的连接
-func (master *Master) addRegion(region_ip string) {
-	client, err := rpc.DialHTTP("tcp", region_ip+util.REGION_PORT)
-	if err != nil {
-		fmt.Println("master error >>> region rpc dial error:", err)
-		return
-	}
-	fmt.Println("master init >>> region rpc dial success:", region_ip)
-	master.RegionClients[region_ip] = client
-	master.BusyOperationNum[region_ip] = 0
-	master.Owntablelist[region_ip] = &[]string{}
-}
+
 
 // 把本地的db文件中的index信息同步
 // SELECT * FROM sqlite_master
@@ -335,7 +325,7 @@ func (master *Master) InitIndex(table string) {
 
 	//更新
 	for _, index := range res {
-		//todo
+
 		if index != "failedinquery" && index != "failedinscan" {
 
 			master.IndexInfo[index] = table

@@ -4,6 +4,8 @@ import (
 	"context"
 	"distribute-sql/util"
 	"fmt"
+	"log"
+	"net/rpc"
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -64,6 +66,31 @@ func (master *Master) getAvailableRegions()[]string {
 
 }
 
+// 用于初始化和后续加入region的连接
+func (master *Master) addRegion (region_ip string) {
+	//根据是否有available来决定是否添加region
+	if master.Available == "" {
+		master.Available = region_ip
+	}else{
+		//把当前的设为主server，available设为backup
+		back_ip := master.Available
+		client, err := rpc.DialHTTP("tcp", region_ip+util.REGION_PORT)
+		if err != nil {
+			fmt.Println("master error >>> region rpc " + region_ip + " dial error:", err)
+			return
+		}
+		master.RegionCount += 1
+		master.RegionClients[region_ip] = client
+		master.BusyOperationNum[region_ip] = 0
+		
+		master.Owntablelist[region_ip] = &[]string{}
+		master.Backup[region_ip] = back_ip
+		//拨号通知server backup，删除server和backup内的data.db数据
+
+	}
+
+}
+
 func (master *Master) watch() {
 	watcher := master.EtcdClient.Watch(context.Background(), "", clientv3.WithPrefix())
 	for wresp := range watcher {
@@ -74,15 +101,124 @@ func (master *Master) watch() {
 
 			case clientv3.EventTypePut:
 				//新增region,清除新增region的所有表格（可能落后于版本）
-				master.RegionCount += 1
+				
 				master.addRegion(IP)
 
 			case clientv3.EventTypeDelete:
-				//删除region,清除region缓存在本地的所有表格，启动backup
-				master.RegionCount -= 1
-
+				//如果是主server挂了
+				//判断IP在RegionIPList中，如果是，则把backup中内容都转存
+				ok := util.FindElement(&master.RegionIPList, IP)
+				if ok!=-1 {
+					master.deleteserver(IP)
+				}else{
+					master.deletebackup(IP)
+				}
+				
+				
 			}
 
 		}
 	}
+}
+
+
+
+func (master *Master) transferOwnTables(src, dst string) {
+	pTables := master.Owntablelist[src]
+	for _, table := range *pTables {
+		master.TableIP[table] = dst
+	}
+	master.Owntablelist[dst] = pTables
+	delete(master.Owntablelist, src)
+}
+
+func (master *Master) removeOwnTables(ip string) {
+	pTables := master.Owntablelist[ip]
+	for _, table := range *pTables {
+		master.deleteTableIndices(table)
+		delete(master.TableIP, table)
+	}
+	delete(master.Owntablelist, ip)
+}
+
+func (master *Master) deleteserver(IP string) {
+	//如果有available，启动backup为server;否则把backup中内容都转存到某个ip中。
+	if master.Available != "" {
+		//从master.RegionIPList中删除
+		util.DeleteFromSlice(&master.RegionIPList, IP)
+
+		//删除client
+		client, ok := master.RegionClients[IP]
+		if ok {
+			client.Close()
+			delete(master.RegionClients, IP)
+		}
+		//拨号添加backup
+		new_server := master.Backup[IP]
+		new_client, err := rpc.DialHTTP("tcp", new_server+util.REGION_PORT)
+		if err != nil {
+			fmt.Println("master error >>> region rpc " + new_server + " dial error:", err)
+			return
+		}
+		master.RegionClients[new_server] = new_client//添加到server列表
+		//转移owntablelist
+		_, ok = master.Owntablelist[IP]
+		if ok {
+			backupIP, ok := master.Backup[IP]
+			if ok {
+				master.transferOwnTables(IP, backupIP)
+			} else {
+				log.Printf("%v has no backup", IP)
+				master.removeOwnTables(IP)
+			}
+		}
+		delete(master.Backup, IP)
+		master.Backup[new_server]=master.Available
+		master.Available=""
+		//拨号通知server他的backup
+		var suc bool
+		_, err = util.TimeoutRPC(client.Go("Region.AssignBackup", master.Backup[new_server], &suc, nil), util.TIMEOUT_M)
+		if err != nil {
+			fmt.Println("region return err ", err)
+		}
+		fmt.Println("server "+IP+" down, "+new_server+"change to server with backup is "+master.Backup[new_server])
+
+	}else{
+		//把backup中内容都转存到某个ip中
+		//TODO
+	}
+}
+
+func (master *Master) deletebackup(IP string) {
+	if master.Available != "" {
+		//把avaiable设为backup
+		//查询backup中是哪个server的值是IP
+		server:=""
+		for k, v := range master.Backup {
+			if v == IP {
+				server = k
+				break
+			}
+		}
+		if server == "" {
+			fmt.Printf("master error >>> backup %v not found", IP)
+			return
+		}
+		new_backup:=master.Available
+		master.Backup[server] = new_backup
+		//拨号通知server他的backup
+		client:= master.RegionClients[server]
+
+		var suc bool
+		_, err := util.TimeoutRPC(client.Go("Region.AssignBackup", master.Backup[server], &suc, nil), util.TIMEOUT_M)
+		if err != nil {
+			fmt.Println("AssignBackup return err ", err)
+		}
+		fmt.Println("server "+server+" 's backup "+IP+" change to "+master.Backup[server])
+		//从master.Backup中删除
+		master.Available=""
+	}else{
+		//把backup中内容都转存到某个server pair中,backup转为available
+	}
+
 }
