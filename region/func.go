@@ -79,21 +79,6 @@ func (region *Region) Execute(input string, reply *string) error {
 	}
 	*reply = "Execute success"
 
-<<<<<<< HEAD
-	// if region.backupIP != "" {
-	// 	rpcBackupRegion, err := rpc.DialHTTP("tcp", region.backupIP+util.REGION_PORT)
-	// 	if err != nil {
-	// 		log.Printf("fail to connect to backup %v", region.backupIP)
-	// 		return nil
-	// 	}
-	// 	// backup's Region.Process must return nil error
-	// 	_, err =util.TimeoutRPC(rpcBackupRegion.Go("Region.Execute", &input, &reply, nil), util.TIMEOUT_S)
-	// 	if err != nil {
-	// 		log.Printf("%v's Region.Process timeout", region.backupIP)
-	// 		return nil
-	// 	}
-	// }
-=======
 	if region.backupIP != "" {
 		rpcBackupRegion, err := rpc.DialHTTP("tcp", region.backupIP+util.REGION_PORT)
 		if err != nil {
@@ -107,7 +92,6 @@ func (region *Region) Execute(input string, reply *string) error {
 			return nil
 		}
 	}
->>>>>>> 2caf65e712b745bd8e4850ed1172169a6fda7eb6
 	return nil
 }
 
