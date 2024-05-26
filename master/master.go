@@ -36,6 +36,7 @@ func (master *Master) Init(mode string){
 		master.regionip_list=util.Region_IPs_LOCAL
 	}
 	master.regionCount=len(master.regionip_list)
+	master.busy_operation_num=make(map[string]int)
 	// etcd client init
 	// wait for update
 
