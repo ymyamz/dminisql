@@ -24,4 +24,8 @@ INSERT INTO user (name, address) VALUES ('John Doe', '123 Main Street');
 SELECT * FROM user;  
 
 
+CREATE INDEX index_name ON table_name (name);
+show indexes;
+DROP INDEX index_name;
+（旧的init可以运行，新的好像有问题）
 
