@@ -132,7 +132,7 @@ func (master *Master) TableDrop(input string, reply *string) error {
 }
 
 func (master *Master) deleteTable(table, ip string) {
-	// master.deleteTableIndices(table)
+	master.deleteTableIndices(table)
 	delete(master.TableIP, table)
 	util.DeleteFromSlice(master.Owntablelist[ip], table)
 }
@@ -150,4 +150,128 @@ func (master *Master) check_and_reset_Regions() error {
 		}
 	}
 	return nil
+}
+
+// 创建索引
+func (master *Master) IndexCreate(input string, reply *string) error {
+	fmt.Println("master indexcreate.called")
+	items := strings.Split(input, " ")
+	index_name := items[2]
+	_, found := master.IndexInfo[index_name]
+	if found {
+		*reply = "Index already exists"
+		return nil
+	}
+	table_name := items[4]
+
+	_, found1 := master.TableIP[table_name]
+	if !found1 {
+		*reply = "table doesn't exists"
+		return nil
+	}
+
+	ip := master.TableIP[table_name]
+
+	rpcRegion := master.RegionClients[ip]
+	fmt.Println("table_ip:", ip)
+
+	var res string
+	//创建索引
+	err := rpcRegion.Go("Region.Execute", input, &res, nil)
+	if err != nil {
+		fmt.Println("region return err ", err)
+	}
+	//fmt.Println(res)
+	if res != "Execute failed" {
+		//todo 如何检测构造失败 当构造失败时res输出为空
+		//fmt.Println("!!1")
+		master.IndexInfo[index_name] = table_name
+		//fmt.Println("!!2")
+		//master.tableIndex[table_name] = index_name
+		util.AddToSliceIndex(master.TableIndex[table_name], index_name)
+		//fmt.Println("!!3")
+		*reply = "index created in region " + ip
+		fmt.Println("region return ", *reply)
+	} else {
+		*reply = "failed"
+		fmt.Println("Execute failed")
+	}
+	return nil
+}
+func (master *Master) deleteTableIndices(table string) {
+	//_, found := master.tableIndex[table]
+	//if !found {
+	//	return
+	//}
+	indexes := master.TableIndex[table]
+	if indexes != nil {
+		// 遍历索引切片
+		for _, index := range *indexes {
+			master.deleteIndex(index, table)
+		}
+	} else {
+		//不存在索引
+		return
+	}
+	//master.deleteIndex(master.tableIndex[table])
+	//delete(master.tableIndex, table)
+}
+func (master *Master) deleteIndex(index string, table string) {
+	delete(master.IndexInfo, index)
+	util.DeleteFromSlice(master.TableIndex[table], index)
+}
+
+// 删除索引
+func (master *Master) IndexDrop(input string, reply *string) error {
+	fmt.Println("master indexdrop.called")
+
+	// 解析输入命令，获取要删除的索引名
+	items := strings.Split(input, " ")
+	index_name := items[2]
+
+	// 检查要删除的索引是否存在
+	_, found := master.IndexInfo[index_name]
+	if !found {
+		*reply = "index doesn't exist"
+		return nil
+	}
+
+	//要删除索引的ip地址
+	table_name := master.IndexInfo[index_name]
+	ip := master.TableIP[table_name]
+	rpcRegion := master.RegionClients[ip]
+	var res string
+
+	// 调用远程过程执行 SQL 命令
+	call, err := util.TimeoutRPC(rpcRegion.Go("Region.Execute", input, &res, nil), util.TIMEOUT_M)
+	if err != nil {
+		fmt.Println("region return err ", err)
+		return err
+	}
+
+	// 检查远程过程调用是否成功
+	if call.Error != nil {
+		fmt.Println("%v region process index drop failed", ip)
+		return call.Error
+	}
+
+	master.deleteIndex(index_name, table_name)
+	return nil
+
+	fmt.Println("region return ", *reply)
+	return nil
+}
+
+// 查询index
+func (master *Master) IndexShow(arg string, reply *string) error {
+	fmt.Println("master indexshow.called")
+	var res string
+	res = "|" + fmt.Sprintf(" %-15s |", "index_name") + fmt.Sprintf(" %-15s |", "table") + "\n"
+	res += "|-----------------|-----------------|\n"
+	for index, table := range master.IndexInfo {
+		res += fmt.Sprintf("| %-15s | %-15s |\n", index, table)
+	}
+	*reply = res
+	return nil
+
 }
