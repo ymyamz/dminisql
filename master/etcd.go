@@ -68,13 +68,13 @@ func (master *Master) getAvailableRegions()[]string {
 
 // 用于初始化和后续加入region的连接
 func (master *Master) addRegion (region_ip string) {
-
 	//根据是否有available来决定是否添加region
 	if master.Available == "" {
 		fmt.Println("Add region as available",region_ip)
 		master.Available = region_ip
 	}else{
 		//把当前的设为主server，available设为backup
+		fmt.Println("Add pair: server ",region_ip,", backup ",master.Available)
 		back_ip := master.Available
 
 		client, err := rpc.DialHTTP("tcp", "localhost:"+region_ip)
@@ -101,7 +101,7 @@ func (master *Master) watch() {
 		for wresp := range watcher {
 			for _, ev := range wresp.Events {
 				fmt.Printf("Type:%s Key:%s Value:%s\n", ev.Type, ev.Kv.Key, ev.Kv.Value)
-				IP := string(ev.Kv.Value)
+				IP := string(ev.Kv.Key)
 				switch ev.Type {
 
 				case clientv3.EventTypePut:
