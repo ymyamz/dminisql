@@ -219,6 +219,7 @@ func (master *Master) deletebackup(IP string) {
 		master.Available=""
 	}else{
 		//把backup中内容都转存到某个server pair中,backup转为available
+		//TODO
 	}
 
 }

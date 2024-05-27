@@ -61,7 +61,8 @@ func (client *Client) Run() {
 		input = strings.ReplaceAll(input, "\\s+", " ")
 
 		if input == "exit" {
-
+			call_func := "Master.SaveToFile"
+			client.connect_to_master(call_func, "master.gob")
 			break
 		}
 		//TODO sparse
