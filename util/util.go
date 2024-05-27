@@ -16,7 +16,7 @@ const (
 	TIMEOUT_L = 10000
 
 	MASTER_IP       = "172.20.0.10"
-	MASTER_IP_LOCAL = "localhost"
+	MASTER_IP_LOCAL = ":8000"
 	MASTER_PORT     = ":4095"
 	REGION_PORT     = ":5095"
 	ETCD_ENDPOINT   = "127.0.0.1:2379"

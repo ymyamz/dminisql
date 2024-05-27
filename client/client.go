@@ -17,20 +17,13 @@ type Client struct {
 func (client *Client) Init(mode string) {
 
 	//test local,you can change util.MASTER_IP_LOCAL
-	var masterip string
 
-	if mode != "d" {
-		masterip = util.MASTER_IP_LOCAL
-	} else {
-		//docker mode
-		masterip = util.MASTER_IP
-	}
-	rpcMas, err := rpc.DialHTTP("tcp", masterip+util.MASTER_PORT)
+	rpcMas, err := rpc.DialHTTP("tcp", "localhost"+util.MASTER_IP_LOCAL)
 	if err != nil {
 		fmt.Printf("CLIENT ERROR >>> connect error: %v", err)
 	}
 	client.rpcMaster = rpcMas
-	fmt.Println("client init and link to master ", masterip)
+	fmt.Println("client init and link to master ", util.MASTER_IP_LOCAL)
 
 }
 func (client *Client) Test() {

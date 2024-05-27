@@ -13,15 +13,12 @@ import (
 func main() {
 	args := os.Args
 	// 获取类型client/master/region
-	if len(args) > 1 {
+	if len(args) > 2 {
 		mode := args[1]
 		//便于服务器测试
+		//env ==d or l
 		var env string
-		if len(args) > 2 {
-			env = args[2]
-		} else {
-			env = "local"
-		}
+		env = args[2]
 
 		switch mode {
 		case "client":
@@ -47,7 +44,10 @@ func main() {
 		case "region":
 			fmt.Println("Running in region mode")
 			var region Region
-			region.Init()
+			if env != "d" {
+				host := args[3]
+				region.Init(host)
+			}
 
 		default:
 			fmt.Println("Unknown mode:", mode)

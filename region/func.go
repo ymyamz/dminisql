@@ -82,7 +82,7 @@ func (region *Region) Execute(input string, reply *string) error {
 	*reply = "Execute success"
 
 	if region.backupIP != "" {
-		rpcBackupRegion, err := rpc.DialHTTP("tcp", region.backupIP+util.REGION_PORT)
+		rpcBackupRegion, err := rpc.DialHTTP("tcp", "localhost:"+region.backupIP)
 		if err != nil {
 			log.Printf("fail to connect to backup %v", region.backupIP)
 			return nil
@@ -160,9 +160,9 @@ func (region *Region) Query(input string, reply *string) error {
 // 给server region分配backup，由server给backup下载data.db
 func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 	fmt.Printf("Region.AssignBackup called: backup ip: %v", ip)
-	client, err := rpc.DialHTTP("tcp", ip+util.REGION_PORT)
+	client, err := rpc.DialHTTP("tcp", "localhost:"+ip)
 	if err != nil {
-		log.Printf("rpc.DialHTTP err: %v", ip+util.REGION_PORT)
+		log.Printf(ip," rpc.DialHTTP err: %v")
 	} else {
 		region.backupClient = client
 		region.backupIP = ip
