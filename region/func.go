@@ -166,7 +166,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 	} else {
 		region.backupClient = client
 		region.backupIP = ip
-		//TODO 通知backup下载data.db,注意先删除backup本地可能存在的data.db 应该直接覆盖了就相当于删了
+		// 通知backup下载data.db,注意先删除backup本地可能存在的data.db 应该直接覆盖了就相当于删了
 
 		util.TransferFile(region.serverIP, ip+util.FILE_PORT, "./data/"+region.hostIP+".db")
 		backupClient, err := rpc.DialHTTP("tcp", region.backupIP+util.REGION_PORT)

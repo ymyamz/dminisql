@@ -378,3 +378,13 @@ func (master *Master) Join(input string, reply *string) error {
 
 	return nil
 }
+
+func (master *Master) FindBest() string {
+	min, best := math.MaxInt, ""
+	for ip, pTables := range master.Owntablelist {
+		if len(*pTables) < min && master.BusyOperationNum[ip] < util.BUSY_THRESHOLD {
+			min, best = len(*pTables), ip
+		}
+	}
+	return best
+}
