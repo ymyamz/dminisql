@@ -92,31 +92,33 @@ func (master *Master) addRegion (region_ip string) {
 }
 
 func (master *Master) watch() {
-	watcher := master.EtcdClient.Watch(context.Background(), "", clientv3.WithPrefix())
-	for wresp := range watcher {
-		for _, ev := range wresp.Events {
-			fmt.Printf("Type:%s Key:%s Value:%s\n", ev.Type, ev.Kv.Key, ev.Kv.Value)
-			IP := string(ev.Kv.Value)
-			switch ev.Type {
+	for{
+		watcher := master.EtcdClient.Watch(context.Background(), "", clientv3.WithPrefix())
+		for wresp := range watcher {
+			for _, ev := range wresp.Events {
+				fmt.Printf("Type:%s Key:%s Value:%s\n", ev.Type, ev.Kv.Key, ev.Kv.Value)
+				IP := string(ev.Kv.Value)
+				switch ev.Type {
 
-			case clientv3.EventTypePut:
-				//新增region,清除新增region的所有表格（可能落后于版本）
-				
-				master.addRegion(IP)
+				case clientv3.EventTypePut:
+					//新增region,清除新增region的所有表格（可能落后于版本）
+					
+					master.addRegion(IP)
 
-			case clientv3.EventTypeDelete:
-				//如果是主server挂了
-				//判断IP在RegionIPList中，如果是，则把backup中内容都转存
-				ok := util.FindElement(&master.RegionIPList, IP)
-				if ok!=-1 {
-					master.deleteserver(IP)
-				}else{
-					master.deletebackup(IP)
+				case clientv3.EventTypeDelete:
+					//如果是主server挂了
+					//判断IP在RegionIPList中，如果是，则把backup中内容都转存
+					ok := util.FindElement(&master.RegionIPList, IP)
+					if ok!=-1 {
+						master.deleteserver(IP)
+					}else{
+						master.deletebackup(IP)
+					}
+					
+					
 				}
-				
-				
-			}
 
+			}
 		}
 	}
 }
