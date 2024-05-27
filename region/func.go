@@ -162,13 +162,23 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 	fmt.Printf("Region.AssignBackup called: backup ip: %v", ip)
 	client, err := rpc.DialHTTP("tcp", "localhost:"+ip)
 	if err != nil {
-		log.Printf(ip," rpc.DialHTTP err: %v")
+		log.Printf(ip, " rpc.DialHTTP err: %v")
 	} else {
 		region.backupClient = client
 		region.backupIP = ip
-		//TODO 通知backup下载data.db,注意先删除backup本地可能存在的data.db
-		//TODO
-		util.TransferFile(region.hostIP, ip+util.FILE_PORT, "data.db")
+		//TODO 通知backup下载data.db,注意先删除backup本地可能存在的data.db 应该直接覆盖了就相当于删了
+
+		util.TransferFile(region.serverIP, ip+util.FILE_PORT, "./data/"+region.hostIP+".db")
+		backupClient, err := rpc.DialHTTP("tcp", region.backupIP+util.REGION_PORT)
+		var res []string
+		args := SaveFileArgs{
+			FileName:     "./data/" + region.hostIP + ".db",
+			SaveFileName: "",
+		}
+		backupClient.Go("Region.SaveFileFromFTP", args, &res, nil)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
 	}
 	return err
 }
@@ -177,9 +187,12 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 //TODO
 
 // Region 从ftp服务器上下载文件到本地
-func (region *Region) SaveFileFromFTP(fileName string, reply *string) error {
+// 要么直接指定savefileName 要么就是regionIP+尾缀
+func (region *Region) SaveFileFromFTP(args SaveFileArgs, reply *string) error {
+	fileName := args.FileName
+	savefileName := args.SaveFileName
 	// connect FTP Server
-	conn, err := ftp.Dial(region.hostIP + util.FILE_PORT)
+	conn, err := ftp.Dial(region.serverIP + util.FILE_PORT)
 	if err != nil {
 		return fmt.Errorf("error connecting to FTP server: %v", err)
 	}
@@ -211,7 +224,14 @@ func (region *Region) SaveFileFromFTP(fileName string, reply *string) error {
 	}
 
 	// 创建本地文件
-	localFilePath := filepath.Join(".", fileName)
+	var localFilePath string
+	fmt.Println(localFilePath)
+	fmt.Println("hhhhhh")
+	if savefileName == "" {
+		localFilePath = filepath.Join("./data/", region.hostIP, util.GetPostfix(fileName))
+	} else {
+		localFilePath = filepath.Join("./", savefileName)
+	}
 	localFile, err := os.Create(localFilePath)
 	if err != nil {
 		return fmt.Errorf("error creating local file: %v", err)
