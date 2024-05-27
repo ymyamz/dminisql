@@ -241,6 +241,7 @@ func (master *Master) Run() {
 		fmt.Printf("master error >>> etcd connect error: %v", err)
 	}
 	defer master.EtcdClient.Close()
+	go master.watch() // 启动etcd监听
 
 	// 注册rpc函数
 	rpc.Register(master)
