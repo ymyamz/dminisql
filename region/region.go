@@ -18,12 +18,14 @@ type Region struct {
 	db *sql.DB
 	etcdClient   *clientv3.Client
 	hostIP string
-	backupIP string
+	backupIP string //only server region have
 	backupClient *rpc.Client
-	
+	serverIP string //only backup region have
 
 }
 func (region *Region) Init(host string) {
+	region.serverIP=""
+	region.backupIP=""
 
 	//按照给定的名称命名
 	region.hostIP = host
