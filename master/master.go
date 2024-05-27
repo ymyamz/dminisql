@@ -155,7 +155,7 @@ func (master *Master) Init(mode string) {
 		master.fromSerializable(serializableMaster)
 		fmt.Println("Master struct loaded from file")
 		for _, region_ip := range master.RegionIPList {
-			client, err := rpc.DialHTTP("tcp", region_ip+util.REGION_PORT)
+			client, err := rpc.DialHTTP("tcp", "localhost:"+region_ip)
 			if err != nil {
 				fmt.Println("master error >>> region rpc dial error:", err)
 				return
@@ -193,7 +193,7 @@ func (master *Master) Init(mode string) {
 		// TODO: Initialize EtcdClient properly
 		master.EtcdClient = nil // Placeholder, replace with actual initialization
 		for _, region_ip := range master.RegionIPList {
-			client, err := rpc.DialHTTP("tcp", region_ip+util.REGION_PORT)
+			client, err := rpc.DialHTTP("tcp", "localhost:"+region_ip)
 			if err != nil {
 				fmt.Println("master error >>> region rpc dial error:", err)
 				return
@@ -247,7 +247,7 @@ func (master *Master) Run() {
 	rpc.Register(master)
 	rpc.HandleHTTP()
 	// 启动server
-	l, err := net.Listen("tcp", util.MASTER_PORT)
+	l, err := net.Listen("tcp", util.MASTER_IP_LOCAL)
 	if err != nil {
 		fmt.Println("Accept error:", err)
 	}
@@ -273,7 +273,7 @@ func (master *Master) InitTableIP() {
 		} else {
 			fmt.Println("RESULT>>> res: \n", res)
 		}
-		if res[0]=="failedinquery"{
+		if len(res)!=0 && res[0]=="failedinquery"{
 			continue
 		}
 		//打印返回的table列表

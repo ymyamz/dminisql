@@ -24,7 +24,7 @@ func (client *Client) connect_to_master(call_func string,input string) string {
 	return res
 }
 func (client *Client) connect_to_region(region_ip string,call_func string,input string) string {
-	rpcRegion, err := rpc.DialHTTP("tcp", region_ip+util.REGION_PORT)
+	rpcRegion, err := rpc.DialHTTP("tcp","localhost:"+region_ip)
 	if err != nil {
 		fmt.Printf("CLIENT ERROR >>> connect error: %v", err)
 	}

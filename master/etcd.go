@@ -68,13 +68,16 @@ func (master *Master) getAvailableRegions()[]string {
 
 // 用于初始化和后续加入region的连接
 func (master *Master) addRegion (region_ip string) {
+
 	//根据是否有available来决定是否添加region
 	if master.Available == "" {
+		fmt.Println("Add region as available",region_ip)
 		master.Available = region_ip
 	}else{
 		//把当前的设为主server，available设为backup
 		back_ip := master.Available
-		client, err := rpc.DialHTTP("tcp", region_ip+util.REGION_PORT)
+
+		client, err := rpc.DialHTTP("tcp", "localhost:"+region_ip)
 		if err != nil {
 			fmt.Println("master error >>> region rpc " + region_ip + " dial error:", err)
 			return
@@ -82,9 +85,10 @@ func (master *Master) addRegion (region_ip string) {
 		master.RegionCount += 1
 		master.RegionClients[region_ip] = client
 		master.BusyOperationNum[region_ip] = 0
-		
+		master.RegionIPList = append(master.RegionIPList, region_ip)
 		master.Owntablelist[region_ip] = &[]string{}
 		master.Backup[region_ip] = back_ip
+		master.Available=""
 		//拨号通知server backup，删除server和backup内的data.db数据
 
 	}
@@ -157,7 +161,7 @@ func (master *Master) deleteserver(IP string) {
 		}
 		//拨号添加backup
 		new_server := master.Backup[IP]
-		new_client, err := rpc.DialHTTP("tcp", new_server+util.REGION_PORT)
+		new_client, err := rpc.DialHTTP("tcp", "localhost:"+new_server)
 		if err != nil {
 			fmt.Println("master error >>> region rpc " + new_server + " dial error:", err)
 			return

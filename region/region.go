@@ -20,11 +20,14 @@ type Region struct {
 	hostIP string
 	backupIP string
 	backupClient *rpc.Client
+	
 
 }
-func (region *Region) Init() {
+func (region *Region) Init(host string) {
 
-	region.hostIP = region.foundhostIP()
+	//按照给定的名称命名
+	region.hostIP = host
+	fmt.Println("Now port is ",region.hostIP)
 	var err error
 	region.etcdClient, err = clientv3.New(clientv3.Config{
 		Endpoints:   []string{util.ETCD_ENDPOINT},
@@ -38,8 +41,7 @@ func (region *Region) Init() {
 
 
 	//连接数据库文件
-
-	region.db, err = sql.Open("sqlite3", util.DB_FILEPATH)
+	region.db, err = sql.Open("sqlite3","./data/"+host+".db")
 	if err != nil {
 		fmt.Printf("Database creation failed: %v\n", err)
 		return
@@ -52,7 +54,7 @@ func (region *Region) Init() {
 	rpc.Register(region)
 	rpc.HandleHTTP()
 	// 启动server
-	l, err := net.Listen("tcp",  util.REGION_PORT)
+	l, err := net.Listen("tcp",  ":"+host)
 	if err != nil {
 		fmt.Println("Accept error:", err)
 	}
