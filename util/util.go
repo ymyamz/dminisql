@@ -6,6 +6,8 @@ import (
 	"net/rpc"
 	"os"
 	"time"
+
+	"github.com/jlaffaye/ftp"
 )
 
 const (
@@ -18,14 +20,14 @@ const (
 	MASTER_PORT     = ":4095"
 	REGION_PORT     = ":5095"
 	ETCD_ENDPOINT   = "127.0.0.1:2379"
-	
+
 	//DB_FILEPATH   = "/data/app/etcd/data.db"
 	//本地使用：
-	DB_FILEPATH   = "data.db"
-	BUSY_THRESHOLD = 100
-	REMOTE_WORKING_DIR="/data/gopath/dminisql/data"
-	LOCAL_WORKING_DIR="data"
-
+	DB_FILEPATH        = "data.db"
+	BUSY_THRESHOLD     = 100
+	REMOTE_WORKING_DIR = "/data/gopath/dminisql/data"
+	LOCAL_WORKING_DIR  = "data"
+	FILE_PORT          = ":21"
 )
 
 var Region_IPs []string
@@ -94,4 +96,35 @@ func AddToSliceIndex(ptr *[]string, newString string) {
 
 	// 添加新的字符串到切片中
 	*ptr = append(*ptr, newString)
+}
+
+func TransferFile(sourceIP string, targetIP string, fileName string) error {
+	// Connect to the FTP server on the target machine
+	conn, err := ftp.Dial(targetIP)
+	if err != nil {
+		return fmt.Errorf("error connecting to FTP server: %v", err)
+	}
+	defer conn.Quit()
+
+	// Log in to the FTP server (assuming anonymous login for simplicity)
+	err = conn.Login("anonymous", "anonymous")
+	if err != nil {
+		return fmt.Errorf("error logging in to FTP server: %v", err)
+	}
+
+	// Open the source file
+	file, err := os.Open(fileName)
+	if err != nil {
+		return fmt.Errorf("error opening source file: %v", err)
+	}
+	defer file.Close()
+
+	// Transfer the file
+	err = conn.Stor(fileName, file)
+	if err != nil {
+		return fmt.Errorf("error transferring file: %v", err)
+	}
+
+	fmt.Println("File sent successfully")
+	return nil
 }

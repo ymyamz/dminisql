@@ -3,9 +3,13 @@ package region
 import (
 	"distribute-sql/util"
 	"fmt"
+	"io"
 	"log"
 	"net/rpc"
+	"os"
+	"path/filepath"
 
+	"github.com/jlaffaye/ftp"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -164,10 +168,69 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 		region.backupIP = ip
 		//TODO 通知backup下载data.db,注意先删除backup本地可能存在的data.db
 		//TODO
-
+		util.TransferFile(region.hostIP, ip+util.FILE_PORT, "data.db")
 	}
 	return err
 }
 
 //写一个转存函数，将region的data.db中的数据转存到best ip pair中？？
 //TODO
+
+// Region 从ftp服务器上下载文件到本地
+func (region *Region) SaveFileFromFTP(fileName string, reply *string) error {
+	// connect FTP Server
+	conn, err := ftp.Dial(region.hostIP + util.FILE_PORT)
+	if err != nil {
+		return fmt.Errorf("error connecting to FTP server: %v", err)
+	}
+	defer conn.Quit()
+
+	// 使用匿名登录
+	err = conn.Login("anonymous", "anonymous")
+	if err != nil {
+		return fmt.Errorf("error logging in to FTP server: %v", err)
+	}
+
+	// 获取FTP根目录的文件列表
+	files, err := conn.List("/")
+	if err != nil {
+		return fmt.Errorf("error listing files on FTP server: %v", err)
+	}
+
+	// 找到需要下载的文件
+	var fileToDownload *ftp.Entry
+	for _, file := range files {
+		if file.Name == fileName {
+			fileToDownload = file
+			break
+		}
+	}
+
+	if fileToDownload == nil {
+		return fmt.Errorf("file %s not found on FTP server", fileName)
+	}
+
+	// 创建本地文件
+	localFilePath := filepath.Join(".", fileName)
+	localFile, err := os.Create(localFilePath)
+	if err != nil {
+		return fmt.Errorf("error creating local file: %v", err)
+	}
+	defer localFile.Close()
+
+	// 从FTP服务器下载文件
+	r, err := conn.Retr(fileToDownload.Name)
+	if err != nil {
+		return fmt.Errorf("error downloading file from FTP server: %v", err)
+	}
+	defer r.Close()
+
+	// 将文件内容复制到本地文件
+	_, err = io.Copy(localFile, r)
+	if err != nil {
+		return fmt.Errorf("error copying file contents: %v", err)
+	}
+
+	fmt.Println("File downloaded successfully")
+	return nil
+}
