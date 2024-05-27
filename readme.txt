@@ -29,3 +29,4 @@ show indexes;
 DROP INDEX index_name;
 （旧的init可以运行，新的好像有问题）
 
+ select * from user cross join user1;

@@ -132,6 +132,25 @@ func (client *Client) parse_sql_statement(input string) {
 			client.connect_to_master(call_func, input)
 		}
 
+	case "select":
+		var tables []string
+		var size int
+		var ip string
+		for i := 0; i < len(items); i++ {
+			table_name := items[i]
+			found := client.connect_to_master("Master.GetTableIP", table_name)
+			if found != "" { //存在该table
+				tables = append(tables, table_name)
+				ip = found
+				size++
+			}
+		}
+		if size == 1 {
+			client.connect_to_region(ip, "Region.Query", input)
+		} else {
+			client.connect_to_master("Master.Join", input)
+		}
+
 	//其他默认执行
 	default:
 		//先解析出具体的table，询问master table的ip地址，然后连接到对应的region，执行sql语句
