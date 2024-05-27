@@ -207,13 +207,23 @@ func (master *Master) IndexCreate(input string, reply *string) error {
 
 	var res string
 	//创建索引
-	err := rpcRegion.Go("Region.Execute", input, &res, nil)
+	call, err := util.TimeoutRPC(rpcRegion.Go("Region.Execute", input, &res, nil), util.TIMEOUT_M)
+	//err := rpcRegion.Go("Region.Execute", input, &res, nil)
+	//if err != nil {
+	//	fmt.Println("region return err ", err)
+	//}
 	if err != nil {
-		fmt.Println("region return err ", err)
+		fmt.Println("SYSTEM HINT>>> timeout, master down!")
 	}
+	if call.Error != nil {
+		fmt.Println("RESULT>>> failed ", call.Error)
+	}
+	//else {
+	//	fmt.Println("RESULT>>>\n" + res)
+	//}
 	//fmt.Println(res)
 	if res != "Execute failed" {
-		//todo 如何检测构造失败 当构造失败时res输出为空
+		//检测构造失败
 		//fmt.Println("!!1")
 		master.IndexInfo[index_name] = table_name
 		//fmt.Println("!!2")
@@ -258,7 +268,7 @@ func (master *Master) IndexDrop(input string, reply *string) error {
 	// 解析输入命令，获取要删除的索引名
 	items := strings.Split(input, " ")
 	index_name := items[2]
-
+	//fmt.Println("!!1")
 	// 检查要删除的索引是否存在
 	_, found := master.IndexInfo[index_name]
 	if !found {
@@ -266,9 +276,14 @@ func (master *Master) IndexDrop(input string, reply *string) error {
 		return nil
 	}
 
+	//fmt.Println("!!2")
 	//要删除索引的ip地址
 	table_name := master.IndexInfo[index_name]
+
+	//fmt.Println("!!3")
 	ip := master.TableIP[table_name]
+
+	//fmt.Println("!!4")
 	rpcRegion := master.RegionClients[ip]
 	var res string
 
@@ -306,4 +321,60 @@ func (master *Master) IndexShow(arg string, reply *string) error {
 
 }
 
+func (master *Master) Join(input string, reply *string) error {
+	fmt.Println("master join.called")
+	items := strings.Split(input, " ")
+	var tables []string
+	var size, flag int
+	var ip []string
+	for i := 0; i < len(items); i++ {
+		name := items[i]
+		found := master.TableIP[name]
+		if found != "" { //存在该table
+			tables = append(tables, name)
+			ip = append(ip, found)
+			size++
+		}
+		if name == "join" {
+			flag = 1
+		}
+	}
+	if flag != 1 { //语句中没有join
+		*reply = "Unsupported queries"
+		fmt.Println("Unsupported queries")
+		return nil
+	}
+	//找到拥有最多所查找的表的region
+	var cnt = make(map[string]int)
+	var best string
+	for i := 0; i < size; i++ {
+		cnt[ip[i]]++
+		if cnt[ip[i]] > cnt[best] {
+			best = ip[i]
+		}
+	}
+	//迁移
 
+	//查询
+	rpcRegion := master.RegionClients[best]
+	var res string
+	call, err := util.TimeoutRPC(rpcRegion.Go("Region.Query", input, &res, nil), util.TIMEOUT_M)
+	//err := rpcRegion.Go("Region.Query", input, &res, nil)
+	//if err != nil {
+	//	fmt.Println("region return err ", err)
+	//}
+	if err != nil {
+		fmt.Println("SYSTEM HINT>>> timeout, master down!")
+	}
+	if call.Error != nil {
+		fmt.Println("RESULT>>> failed ", call.Error)
+	}
+	//else {
+	//	fmt.Println("RESULT>>>\n" + res)
+	//}
+	*reply = res
+	//fmt.Println(input)
+	//fmt.Println(res)
+
+	return nil
+}
