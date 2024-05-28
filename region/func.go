@@ -18,6 +18,7 @@ import (
 func (region *Region) TableName(input string, reply *[]string) error {
 	fmt.Println("Return TABLENAME in region")
 	rows, err := region.db.Query("SELECT name FROM sqlite_master WHERE type='table'")
+	
 	if err != nil {
 		fmt.Printf("Query failed: %v\n", err)
 		*reply = append(*reply, "failedinquery")
@@ -347,26 +348,32 @@ func (region *Region) Get(input string, reply *[]string) error {
 
 // 给server region分配backup，由server给backup下载data.db
 func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
-	fmt.Printf("Region.AssignBackup called: backup ip: %v", ip)
+	fmt.Printf("Region.AssignBackup called,backup ip: %v", ip)
 	client, err := rpc.DialHTTP("tcp", "localhost:"+ip)
 	if err != nil {
-		log.Printf(ip, " rpc.DialHTTP err: %v")
+		fmt.Printf(ip, " rpc.DialHTTP err: %v")
 	} else {
+
 		region.backupClient = client
 		region.backupIP = ip
-		// 通知backup下载data.db,注意先删除backup本地可能存在的data.db 应该直接覆盖了就相当于删了
+		// 通知backup下载data.db,直接覆盖了本地data.db
+		//在本地测试中，IP都改成127.0.0.1
+		//util.TransferFile(region.hostIP+util.FILE_PORT, ip+util.FILE_PORT, "./data/"+region.hostIP+".db")
+		util.TransferFile("127.0.0.1", "127.0.0.1"+util.FILE_PORT, "./data/"+region.hostIP+".db")
 
-		util.TransferFile(region.serverIP, ip+util.FILE_PORT, "./data/"+region.hostIP+".db")
-		backupClient, err := rpc.DialHTTP("tcp", region.backupIP+util.REGION_PORT)
+		backupClient, err := rpc.DialHTTP("tcp", "localhost:"+region.backupIP)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+		
 		var res []string
 		args := SaveFileArgs{
 			FileName:     "./data/" + region.hostIP + ".db",
 			SaveFileName: "",
 		}
+		// 通知backup从ftp获取data.db
 		backupClient.Go("Region.SaveFileFromFTP", args, &res, nil)
-		if err != nil {
-			fmt.Println("Error:", err)
-		}
+
 	}
 	return err
 }
@@ -433,10 +440,12 @@ func (region *Region) TransferToBestPair(placeholder string, reply *string) erro
 // Region 从ftp服务器上下载文件到本地
 // 要么直接指定savefileName 要么就是regionIP+尾缀
 func (region *Region) SaveFileFromFTP(args SaveFileArgs, reply *string) error {
+	
 	fileName := args.FileName
 	savefileName := args.SaveFileName
+	fmt.Println("SaveFileFromFTP called, save from ", args.FileName)
 	// connect FTP Server
-	conn, err := ftp.Dial(region.serverIP + util.FILE_PORT)
+	conn, err := ftp.Dial("localhost" + util.FILE_PORT)
 	if err != nil {
 		return fmt.Errorf("error connecting to FTP server: %v", err)
 	}
@@ -469,8 +478,6 @@ func (region *Region) SaveFileFromFTP(args SaveFileArgs, reply *string) error {
 
 	// 创建本地文件
 	var localFilePath string
-	fmt.Println(localFilePath)
-	fmt.Println("hhhhhh")
 	if savefileName == "" {
 		localFilePath = filepath.Join("./data/", region.hostIP, util.GetPostfix(fileName))
 	} else {
