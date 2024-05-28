@@ -51,6 +51,9 @@ func (master *Master) TableCreate(input string, reply *string) error {
 			}
 		}
 		backup := master.Backup[best]
+		if best == "" {
+			best = master.RegionIPList[0]
+		}
 
 		rpcRegion := master.RegionClients[best]
 		fmt.Println("best_ip:", best)
@@ -76,6 +79,8 @@ func (master *Master) TableCreate(input string, reply *string) error {
 			//}
 			master.TableIP[table_name] = best
 			util.AddToSlice(master.Owntablelist[best], table_name)
+			//增加tableindex的初始化
+			master.TableIndex[table_name] = &[]string{}
 			*reply = "table created on region " + best
 		}
 
@@ -252,7 +257,7 @@ func (master *Master) IndexCreate(input string, reply *string) error {
 		master.IndexInfo[index_name] = table_name
 		//fmt.Println("!!2")
 		//master.tableIndex[table_name] = index_name
-		util.AddToSliceIndex(master.TableIndex[table_name], index_name)
+		util.AddToSlice(master.TableIndex[table_name], index_name)
 		//fmt.Println("!!3")
 		*reply = "index created on region " + ip
 		fmt.Println("region return ", *reply)
@@ -411,11 +416,11 @@ func (master *Master) Complex_query(input string, reply *string) error {
 	return nil
 }
 
-func (master *Master) FindBest(placeholder string, best *string) error {
+func (master *Master) FindBest(obmit string, best *string) error {
 	min := math.MaxInt
 	*best = ""
 	for ip, pTables := range master.Owntablelist {
-		if len(*pTables) < min && master.BusyOperationNum[ip] < util.BUSY_THRESHOLD {
+		if len(*pTables) < min && master.BusyOperationNum[ip] < util.BUSY_THRESHOLD && obmit != ip {
 			min, *best = len(*pTables), ip
 		}
 	}
@@ -466,6 +471,7 @@ func (master *Master) Move(args util.MoveStruct, re *string) error {
 	//在新的region中建表
 	for _, line := range res2 {
 		fmt.Println("line:", line)
+		fmt.Println("region", region)
 		master.TableCreateIn(line, region)
 	}
 

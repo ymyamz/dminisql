@@ -215,24 +215,15 @@ func (master *Master) deleteserver(IP string) {
 		// 把server-backup中内容都转存到best pair中
 		// backup 变成available
 		backup_ip := master.Backup[IP]
-		tableIP := master.TableIP
-		// client := master.RegionClients[backup_ip]
+
+		client := master.RegionClients[backup_ip]
 
 		//保存table名
 		table_name := *master.Owntablelist[IP]
 
-		//从master中删除server和backup的信息
-		master.DeleteRegionInfo(backup_ip, false)
-		master.DeleteRegionInfo(IP, true)
-
-		client, err := rpc.DialHTTP("tcp", "localhost:"+backup_ip)
-		if err != nil {
-			fmt.Println("server "+backup_ip+" build rpc connection return err ", err)
-		}
-		master.RegionClients[backup_ip] = client
-
 		var accept_ip string
-		_, err = util.TimeoutRPC(client.Go("Region.TransferToBestPair", tableIP, &accept_ip, nil), util.TIMEOUT_M)
+		master.FindBest(IP, &accept_ip)
+		_, err := util.TimeoutRPC(client.Go("Region.TransferToBestPair", accept_ip, &accept_ip, nil), util.TIMEOUT_M)
 		if err != nil {
 			fmt.Println("server "+backup_ip+" TransferToBestPair return err ", err)
 		}
@@ -252,6 +243,9 @@ func (master *Master) deleteserver(IP string) {
 		if err != nil {
 			fmt.Println("Clear Region  "+backup_ip+" return err ", err)
 		}
+		//从master中删除server和backup的信息
+		master.DeleteRegionInfo(backup_ip, false)
+		master.DeleteRegionInfo(IP, true)
 		//backup清空变成avaiable
 		master.Available = backup_ip
 
@@ -291,39 +285,24 @@ func (master *Master) deletebackup(IP string) {
 		//把server中内容都转存到某个server pair中,server转为available
 
 		//转存到accept_ip中
-		tableIP := make(map[string]string)
-
-		// 遍历原始 map 并复制键值对到新的 map
-		for key, value := range master.TableIP {
-			tableIP[key] = value
-		}
-		fmt.Println("TAble ip")
-		fmt.Println(tableIP)
-		//保存table名
-		table_name := *master.Owntablelist[server]
-		delete(master.Owntablelist, server)
-		// client := master.RegionClients[backup_ip]
-
-		client, err := rpc.DialHTTP("tcp", "localhost:"+server)
-		if err != nil {
-			fmt.Println("server "+server+" build rpc connection return err ", err)
-		}
-		master.RegionClients[server] = client
-
+		client := master.RegionClients[server]
 		var accept_ip string
-		err = client.Call("Region.TransferToBestPair", tableIP, &accept_ip)
+		master.FindBest(IP, &accept_ip)
+		err := client.Call("Region.TransferToBestPair", accept_ip, &accept_ip)
 		if err != nil {
 			fmt.Println("server "+server+" TransferToBestPair return err ", err)
 		}
 		fmt.Println(" server " + server + "'s content transfer to " + accept_ip)
 
+		//tableIP和owntablelist都转存到accept_ip中
+		table_name := *master.Owntablelist[server]
 		for _, table := range table_name {
 			master.TableIP[table] = accept_ip
 		}
 		*master.Owntablelist[accept_ip] = append(*master.Owntablelist[accept_ip], table_name...)
 
 		var res string
-		//删除server中的所有信息
+		//删除backup中的所有信息
 		_, err = util.TimeoutRPC(client.Go("Region.ClearAllData", "", &res, nil), util.TIMEOUT_M)
 		if err != nil {
 			fmt.Println("Clear Region  "+server+" return err ", err)

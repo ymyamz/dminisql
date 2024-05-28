@@ -27,6 +27,7 @@ type Region struct {
 }
 
 type SaveFileArgs struct {
+	ServerIP     string //tell backup region who is server 
 	FileName     string
 	Reply        *string
 	SaveFileName string
