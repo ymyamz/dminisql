@@ -192,7 +192,7 @@ func (client *Client) parse_sql_statement(input string) {
 		} else if size == 0 {
 			fmt.Println("table doesn't exist")
 		} else {
-			client.connect_to_master("Master.Complex_query", input)
+			client.connect_to_master("Master.Complex_query_master", input)
 		}
 	//case "test":
 	//	input = "SELECT sql FROM sqlite_master WHERE tbl_name='user';"

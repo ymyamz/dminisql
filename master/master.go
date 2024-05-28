@@ -1,6 +1,7 @@
 package master
 
 import (
+	"database/sql"
 	"distribute-sql/util"
 	"encoding/gob"
 	"fmt"
@@ -10,12 +11,14 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/mattn/go-sqlite3"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 type Master struct {
 	RegionCount      int
 	EtcdClient       *clientv3.Client
+	db               *sql.DB
 	RegionClients    map[string]*rpc.Client
 	Owntablelist     map[string]*[]string // ip -> tables
 	TableIP          map[string]string    // table -> ip
@@ -25,6 +28,7 @@ type Master struct {
 	BusyOperationNum map[string]int       // operations for each region in 1 minute, > BUSY_THRESHOLD deemed as busy
 	IndexInfo        map[string]string    // index->table
 	TableIndex       map[string]*[]string // table->indexs
+	TableCnt         map[string]int       // table->count 存储本地数据库中table应该copy了多少次
 }
 
 // SerializableMaster is used for selective serialization
@@ -146,7 +150,9 @@ func LoadFromFile(filename string) (*SerializableMaster, error) {
 
 func (master *Master) Init(mode string) {
 	// Attempt to load from file
+	
 	serializableMaster, err := LoadFromFile("master.gob")
+	master.TableCnt = make(map[string]int)
 	master.RegionClients = make(map[string]*rpc.Client)
 	master.Backup = make(map[string]string)
 	master.Available = ""
@@ -244,6 +250,7 @@ func (master *Master) Init(mode string) {
 	if err != nil {
 		fmt.Println("Error saving to file:", err)
 	}
+
 }
 
 func (master *Master) Run() {
@@ -269,6 +276,22 @@ func (master *Master) Run() {
 		fmt.Println("Accept error:", err)
 	}
 	go http.Serve(l, nil) // 进入的链接让rpc来执行
+
+	//cache_db接口
+	filePath := "./data/cache.db"
+	_, err = os.Create(filePath)
+	if err != nil {
+		fmt.Printf("Failed to create database file: %v\n", err)
+		return
+	}
+	master.db, err = sql.Open("sqlite3", filePath)
+	if err != nil {
+		fmt.Printf("Database creation failed: %v\n", err)
+		return
+	}
+	defer master.db.Close()
+	fmt.Printf("Database connection successful\n")
+
 	for {
 		time.Sleep(10 * time.Second)
 	}
@@ -376,3 +399,4 @@ func (master *Master)ShowNowInfo(input string, reply *string) error {
   
     return nil  
 }  
+
