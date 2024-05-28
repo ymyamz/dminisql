@@ -150,7 +150,7 @@ func (master *Master) Init(mode string) {
 	master.RegionClients = make(map[string]*rpc.Client)
 	master.Backup = make(map[string]string)
 	master.Available = ""
-	if err == nil {
+	if err != nil {
 		// Successfully loaded from file
 		master.fromSerializable(serializableMaster)
 		fmt.Println("Master struct loaded from file")

@@ -105,6 +105,7 @@ func (master *Master) TableDrop(input string, reply *string) error {
 	_, found := master.TableIP[table_name]
 	if !found {
 		*reply = "table doesn't exist"
+		fmt.Println("table doesn't exist", table_name)
 	} else {
 		// 获取要删除表的服务器 IP 地址
 		ip := master.TableIP[table_name]
@@ -354,6 +355,11 @@ func (master *Master) Join(input string, reply *string) error {
 		}
 	}
 	//迁移
+	for i := 0; i < size; i++ {
+		if ip[i] != best {
+			master.Move(tables[i], best)
+		}
+	}
 
 	//查询
 	rpcRegion := master.RegionClients[best]
@@ -387,4 +393,90 @@ func (master *Master) FindBest(placeholder string, reply *string) string {
 		}
 	}
 	return best
+
+// 将table移到region中
+func (master *Master) Move(table string, region string) {
+	fmt.Println("master move.called")
+	oldip := master.TableIP[table]
+	rpcOldRegion := master.RegionClients[oldip]
+
+	//从旧region中获取数据
+	input := "select * from " + table
+	var res []string
+	call, err := util.TimeoutRPC(rpcOldRegion.Go("Region.Get", input, &res, nil), util.TIMEOUT_M)
+	if err != nil {
+		fmt.Println("SYSTEM HINT>>> timeout, master down!")
+	}
+	if call.Error != nil {
+		fmt.Println("RESULT>>> failed ", call.Error)
+	}
+	fmt.Println(res)
+
+	//获取create表的sql
+	input = "select sql from sqlite_master where tbl_name = "
+	input = input + "'" + table + "'"
+	var res2 []string
+	call2, err2 := util.TimeoutRPC(rpcOldRegion.Go("Region.Get", input, &res2, nil), util.TIMEOUT_M)
+	if err2 != nil {
+		fmt.Println("SYSTEM HINT>>> timeout, master down!")
+	}
+	if call2.Error != nil {
+		fmt.Println("RESULT>>> failed ", call2.Error)
+	}
+
+	//从旧region中删除表
+	var reply string
+	input = "drop table " + table
+	master.TableDrop(input, &reply)
+	rpcRegion := master.RegionClients[region]
+
+	//在新的region中建表
+	for _, line := range res2 {
+		fmt.Println("line:", line)
+		master.TableCreateIn(line, region)
+	}
+
+	var inputt []string
+	inputt = append(inputt, table)
+	inputt = append(inputt, res...)
+	var res3 string
+	//批量插入
+	//call3, err3 := util.TimeoutRPC(rpcRegion.Go("Region.Insert", table, res, nil), util.TIMEOUT_M)
+	call3, err3 := util.TimeoutRPC(rpcRegion.Go("Region.Insert", inputt, &res3, nil), util.TIMEOUT_M)
+	if err3 != nil {
+		fmt.Println("SYSTEM HINT>>> timeout, master down!")
+	}
+	if call3.Error != nil {
+		fmt.Println("RESULT>>> failed ", call3.Error)
+	}
+}
+
+func (master *Master) TableCreateIn(input string, best string) error {
+	fmt.Println("master tablecreate.called")
+	master.check_and_reset_Regions()
+	items := strings.Split(input, " ")
+	//table_name := items[2]
+	table_name := extractTable(items[2])
+	_, found := master.TableIP[table_name]
+	if found {
+		//*reply = "table already exists"
+		fmt.Println("table already exists", table_name)
+	} else {
+
+		rpcRegion := master.RegionClients[best]
+		fmt.Println("best_ip:", best)
+		master.BusyOperationNum[best] += 1
+
+		var res string
+		//创建表
+		err := rpcRegion.Go("Region.Execute", input, &res, nil)
+		if err != nil {
+			fmt.Println("region return err ", err)
+		}
+		master.TableIP[table_name] = best
+		util.AddToSlice(master.Owntablelist[best], table_name)
+		//*reply = "table created in region " + best
+	}
+	//fmt.Println("region return ", *reply)
+	return nil
 }

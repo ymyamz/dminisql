@@ -70,6 +70,128 @@ func (region *Region) Index(input string, reply *[]string) error {
 	return nil
 }
 
+// 批量插入
+func (region *Region) Insert(data []string, reply *string) error {
+	table := data[0]
+	fmt.Println("Insert into table:", table)
+	if len(data) > 0 {
+		for _, line := range data {
+			fmt.Printf(line + " ")
+		}
+		fmt.Println()
+	} else {
+		fmt.Println(" no data")
+	}
+
+	sql := "INSERT INTO " + table + "("
+
+	// 获取表的列数和列名
+	GetInput := "PRAGMA table_info(" + table + ")"
+	var res []string
+	err := region.Get(GetInput, &res)
+
+	//rows, err := region.db.Query("PRAGMA table_info(" + table + ")")
+	//if err != nil {
+	//	fmt.Println("查询失败：", err)
+	//	return nil
+	//}
+	//defer rows.Close()
+
+	columnCount := 0
+	flag := 1
+	i := 0
+
+	// 遍历结果集以计算列数和获取列名
+	for _, name := range res {
+		i++
+		if i == 6 {
+			i = 1
+		}
+		if i == 2 {
+			columnCount++
+			if flag == 1 {
+				flag = 0
+			} else {
+				sql += ","
+			}
+			sql += name
+		}
+	}
+	fmt.Println("表的列数", columnCount)
+	fmt.Println("表的列名", res)
+	//for rows.Next() {
+	//	var name string
+	//	if err := rows.Scan(&name); err != nil {
+	//		fmt.Println("扫描失败：", err)
+	//		return nil
+	//	}
+	//	columnCount++
+	//	if flag == 1 {
+	//		flag = 0
+	//	} else {
+	//		sql += ","
+	//	}
+	//	sql += name
+	//}
+
+	sql += ")VALUES ("
+	for i := 0; i < columnCount; i++ {
+		if i != 0 {
+			sql += ","
+		}
+		sql += "?"
+	}
+	sql += ")"
+	fmt.Println("sql:", sql)
+
+	// 检查是否有错误
+	//if err := rows.Err(); err != nil {
+	//	fmt.Println("rows 扫描失败：", err)
+	//	return nil
+	//}
+
+	// 开始一个事务
+	tx, err := region.db.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// 一次性插入多行数据
+	stmt, err := tx.Prepare(sql)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer stmt.Close()
+
+	i = 0
+	input := make([]interface{}, columnCount)
+	flag = 1
+	for _, line := range data {
+		if flag == 1 {
+			flag = 0
+			continue
+		}
+		input[i] = line
+		i++
+		if i == columnCount {
+			i = 0
+			fmt.Println("input:", input)
+			_, err = stmt.Exec(input...)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+
+	// 提交事务
+	err = tx.Commit()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+}
+
 // 非查询类
 func (region *Region) Execute(input string, reply *string) error {
 	fmt.Println("Execute input:", input)
@@ -152,6 +274,72 @@ func (region *Region) Query(input string, reply *string) error {
 			}
 		}
 		response += rowOutput + "\n"
+	}
+	*reply = response
+	return nil
+}
+
+// //获取建表sql
+// func (region *Region) Create(input string, reply *string) error {
+//
+//		fmt.Println("Create called")
+//		rows, err := region.db.Query(input)
+//		if err != nil {
+//			fmt.Printf("Query failed: %v\n", err)
+//			*reply = "failed query"
+//			return nil
+//		}
+//		*reply=rows;
+//		return nil
+//	}
+//
+// 获取所有数据
+func (region *Region) Get(input string, reply *[]string) error {
+
+	fmt.Println("Get called")
+	rows, err := region.db.Query(input)
+	if err != nil {
+		fmt.Printf("Query failed: %v\n", err)
+		//*reply = "failed query"
+		*reply = append(*reply, "failedinquery")
+		return nil
+	}
+	cols, _ := rows.Columns()
+	colVals := make([]interface{}, len(cols))
+	colPtrs := make([]interface{}, len(cols))
+	for i := range colPtrs {
+		colPtrs[i] = &colVals[i]
+	}
+
+	var response []string
+
+	// Iterate over rows
+	for rows.Next() {
+		err = rows.Scan(colPtrs...)
+		if err != nil {
+			fmt.Printf("Query failed: %v\n", err)
+			//*reply = "failedscan"
+			*reply = append(*reply, "failedinscan")
+			return nil
+		}
+		var rowOutput []string
+		for _, col := range colVals {
+
+			if col == nil {
+			} else {
+				switch v := col.(type) {
+				case []byte:
+					rowOutput = append(rowOutput, fmt.Sprintf(" %s", string(v)))
+				case int64:
+					rowOutput = append(rowOutput, fmt.Sprintf(" %d", v))
+				case string:
+					rowOutput = append(rowOutput, fmt.Sprintf(" %s", v))
+				default: // unknown type
+					rowOutput = append(rowOutput, fmt.Sprintf(" %s", fmt.Sprint(v)))
+				}
+			}
+		}
+		response = append(response, rowOutput...)
 	}
 	*reply = response
 	return nil

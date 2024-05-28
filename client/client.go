@@ -147,9 +147,17 @@ func (client *Client) parse_sql_statement(input string) {
 		}
 		if size == 1 {
 			client.connect_to_region(ip, "Region.Query", input)
+
+			//client.connect_to_region_test(ip, "Region.Get", input)
+
 		} else {
 			client.connect_to_master("Master.Join", input)
 		}
+	//case "test":
+	//	input = "SELECT sql FROM sqlite_master WHERE tbl_name='user';"
+	//	table_name := "user"
+	//	region_ip := client.connect_to_master("Master.GetTableIP", table_name)
+	//	client.connect_to_region_test(region_ip, "Region.Get", input)
 
 	//其他默认执行
 	default:
