@@ -70,6 +70,128 @@ func (region *Region) Index(input string, reply *[]string) error {
 	return nil
 }
 
+// 批量插入
+func (region *Region) Insert(data []string, reply *string) error {
+	table := data[0]
+	fmt.Println("Insert into table:", table)
+	if len(data) > 0 {
+		for _, line := range data {
+			fmt.Printf(line + " ")
+		}
+		fmt.Println()
+	} else {
+		fmt.Println(" no data")
+	}
+
+	sql := "INSERT INTO " + table + "("
+
+	// 获取表的列数和列名
+	GetInput := "PRAGMA table_info(" + table + ")"
+	var res []string
+	err := region.Get(GetInput, &res)
+
+	//rows, err := region.db.Query("PRAGMA table_info(" + table + ")")
+	//if err != nil {
+	//	fmt.Println("查询失败：", err)
+	//	return nil
+	//}
+	//defer rows.Close()
+
+	columnCount := 0
+	flag := 1
+	i := 0
+
+	// 遍历结果集以计算列数和获取列名
+	for _, name := range res {
+		i++
+		if i == 6 {
+			i = 1
+		}
+		if i == 2 {
+			columnCount++
+			if flag == 1 {
+				flag = 0
+			} else {
+				sql += ","
+			}
+			sql += name
+		}
+	}
+	fmt.Println("表的列数", columnCount)
+	fmt.Println("表的列名", res)
+	//for rows.Next() {
+	//	var name string
+	//	if err := rows.Scan(&name); err != nil {
+	//		fmt.Println("扫描失败：", err)
+	//		return nil
+	//	}
+	//	columnCount++
+	//	if flag == 1 {
+	//		flag = 0
+	//	} else {
+	//		sql += ","
+	//	}
+	//	sql += name
+	//}
+
+	sql += ")VALUES ("
+	for i := 0; i < columnCount; i++ {
+		if i != 0 {
+			sql += ","
+		}
+		sql += "?"
+	}
+	sql += ")"
+	fmt.Println("sql:", sql)
+
+	// 检查是否有错误
+	//if err := rows.Err(); err != nil {
+	//	fmt.Println("rows 扫描失败：", err)
+	//	return nil
+	//}
+
+	// 开始一个事务
+	tx, err := region.db.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// 一次性插入多行数据
+	stmt, err := tx.Prepare(sql)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer stmt.Close()
+
+	i = 0
+	input := make([]interface{}, columnCount)
+	flag = 1
+	for _, line := range data {
+		if flag == 1 {
+			flag = 0
+			continue
+		}
+		input[i] = line
+		i++
+		if i == columnCount {
+			i = 0
+			fmt.Println("input:", input)
+			_, err = stmt.Exec(input...)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+
+	// 提交事务
+	err = tx.Commit()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+}
+
 // 非查询类
 func (region *Region) Execute(input string, reply *string) error {
 	fmt.Println("Execute input:", input)
@@ -157,18 +279,94 @@ func (region *Region) Query(input string, reply *string) error {
 	return nil
 }
 
+// //获取建表sql
+// func (region *Region) Create(input string, reply *string) error {
+//
+//		fmt.Println("Create called")
+//		rows, err := region.db.Query(input)
+//		if err != nil {
+//			fmt.Printf("Query failed: %v\n", err)
+//			*reply = "failed query"
+//			return nil
+//		}
+//		*reply=rows;
+//		return nil
+//	}
+//
+// 获取所有数据
+func (region *Region) Get(input string, reply *[]string) error {
+
+	fmt.Println("Get called")
+	rows, err := region.db.Query(input)
+	if err != nil {
+		fmt.Printf("Query failed: %v\n", err)
+		//*reply = "failed query"
+		*reply = append(*reply, "failedinquery")
+		return nil
+	}
+	cols, _ := rows.Columns()
+	colVals := make([]interface{}, len(cols))
+	colPtrs := make([]interface{}, len(cols))
+	for i := range colPtrs {
+		colPtrs[i] = &colVals[i]
+	}
+
+	var response []string
+
+	// Iterate over rows
+	for rows.Next() {
+		err = rows.Scan(colPtrs...)
+		if err != nil {
+			fmt.Printf("Query failed: %v\n", err)
+			//*reply = "failedscan"
+			*reply = append(*reply, "failedinscan")
+			return nil
+		}
+		var rowOutput []string
+		for _, col := range colVals {
+
+			if col == nil {
+			} else {
+				switch v := col.(type) {
+				case []byte:
+					rowOutput = append(rowOutput, fmt.Sprintf(" %s", string(v)))
+				case int64:
+					rowOutput = append(rowOutput, fmt.Sprintf(" %d", v))
+				case string:
+					rowOutput = append(rowOutput, fmt.Sprintf(" %s", v))
+				default: // unknown type
+					rowOutput = append(rowOutput, fmt.Sprintf(" %s", fmt.Sprint(v)))
+				}
+			}
+		}
+		response = append(response, rowOutput...)
+	}
+	*reply = response
+	return nil
+}
+
 // 给server region分配backup，由server给backup下载data.db
 func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 	fmt.Printf("Region.AssignBackup called: backup ip: %v", ip)
 	client, err := rpc.DialHTTP("tcp", "localhost:"+ip)
 	if err != nil {
-		log.Printf(ip," rpc.DialHTTP err: %v")
+		log.Printf(ip, " rpc.DialHTTP err: %v")
 	} else {
 		region.backupClient = client
 		region.backupIP = ip
-		//TODO 通知backup下载data.db,注意先删除backup本地可能存在的data.db
-		//TODO
-		util.TransferFile(region.hostIP, ip+util.FILE_PORT, "data.db")
+		//TODO 通知backup下载data.db,注意先删除backup本地可能存在的data.db 应该直接覆盖了就相当于删了
+
+		util.TransferFile(region.serverIP, ip+util.FILE_PORT, "./data/"+region.hostIP+".db")
+		backupClient, err := rpc.DialHTTP("tcp", region.backupIP+util.REGION_PORT)
+		var res []string
+		args := SaveFileArgs{
+			FileName:     "./data/" + region.hostIP + ".db",
+			SaveFileName: "",
+		}
+		backupClient.Go("Region.SaveFileFromFTP", args, &res, nil)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
 	}
 	return err
 }
@@ -177,9 +375,12 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 //TODO
 
 // Region 从ftp服务器上下载文件到本地
-func (region *Region) SaveFileFromFTP(fileName string, reply *string) error {
+// 要么直接指定savefileName 要么就是regionIP+尾缀
+func (region *Region) SaveFileFromFTP(args SaveFileArgs, reply *string) error {
+	fileName := args.FileName
+	savefileName := args.SaveFileName
 	// connect FTP Server
-	conn, err := ftp.Dial(region.hostIP + util.FILE_PORT)
+	conn, err := ftp.Dial(region.serverIP + util.FILE_PORT)
 	if err != nil {
 		return fmt.Errorf("error connecting to FTP server: %v", err)
 	}
@@ -211,7 +412,14 @@ func (region *Region) SaveFileFromFTP(fileName string, reply *string) error {
 	}
 
 	// 创建本地文件
-	localFilePath := filepath.Join(".", fileName)
+	var localFilePath string
+	fmt.Println(localFilePath)
+	fmt.Println("hhhhhh")
+	if savefileName == "" {
+		localFilePath = filepath.Join("./data/", region.hostIP, util.GetPostfix(fileName))
+	} else {
+		localFilePath = filepath.Join("./", savefileName)
+	}
 	localFile, err := os.Create(localFilePath)
 	if err != nil {
 		return fmt.Errorf("error creating local file: %v", err)

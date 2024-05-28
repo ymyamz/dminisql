@@ -30,3 +30,4 @@ DROP INDEX index_name;
 （旧的init可以运行，新的好像有问题）
 
 go run main.go region l 8002
+select * from user cross join user1;

@@ -8,5 +8,6 @@ go run main.go client l
 （必须加l意思是local）
 
 其中region的data数据都保存在./data/[port_name].db文件中
+可使用文件测试，指令如下 例如".read ./sql/test.txt;"（严格要求是.read加一个空格开头）test.txt文件内容中每行一个命令加分号
 
 打开etcd-v3.4.31-windows-amd64目录，已配置好config，打开一个终端输入.\etcd.exe --config-file .\config.yml

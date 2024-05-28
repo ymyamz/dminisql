@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"strings"
+
 	"github.com/jlaffaye/ftp"
 )
 
@@ -96,6 +98,16 @@ func AddToSliceIndex(ptr *[]string, newString string) {
 
 	// 添加新的字符串到切片中
 	*ptr = append(*ptr, newString)
+}
+
+func GetPostfix(filename string) string {
+	index := strings.LastIndex(filename, ".")
+	var extension string
+	if index != -1 {
+		// 提取尾部
+		extension = filename[index:]
+	}
+	return extension
 }
 
 func TransferFile(sourceIP string, targetIP string, fileName string) error {

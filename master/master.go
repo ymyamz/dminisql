@@ -184,7 +184,7 @@ func (master *Master) Init(mode string) {
 			fmt.Println("Region", i, ":", region_ip, " backup:", master.Backup[region_ip])
 		}
 		//有待初始化region的backup
-		
+
 		master.RegionCount = len(master.RegionIPList)
 		master.BusyOperationNum = make(map[string]int)
 		master.RegionClients = make(map[string]*rpc.Client)
@@ -273,7 +273,7 @@ func (master *Master) InitTableIP() {
 		} else {
 			fmt.Println("RESULT>>> res: \n", res)
 		}
-		if len(res)!=0 && res[0]=="failedinquery"{
+		if len(res) != 0 && res[0] == "failedinquery" {
 			continue
 		}
 		//打印返回的table列表
@@ -296,8 +296,6 @@ func (master *Master) GetTableIP(table string, reply *string) error {
 	*reply = master.TableIP[table]
 	return nil
 }
-
-
 
 // 把本地的db文件中的index信息同步
 // SELECT * FROM sqlite_master

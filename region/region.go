@@ -9,41 +9,56 @@ import (
 	"net"
 	"net/http"
 	"net/rpc"
+	"os"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
+
 type Region struct {
-	db *sql.DB
+	db           *sql.DB
 	etcdClient   *clientv3.Client
-	hostIP string
-	backupIP string //only server region have
+	hostIP       string
+	backupIP     string //only server region have
 	backupClient *rpc.Client
-	serverIP string //only backup region have
+	serverIP     string //only backup region have
 
 }
+
+type SaveFileArgs struct {
+	FileName     string
+	Reply        *string
+	SaveFileName string
+	RegionIP     string
+}
+
 func (region *Region) Init(host string) {
-	region.serverIP=""
-	region.backupIP=""
+	region.serverIP = ""
+	region.backupIP = ""
 
 	//按照给定的名称命名
 	region.hostIP = host
-	fmt.Println("Now port is ",region.hostIP)
+	fmt.Println("Now port is ", region.hostIP)
 	var err error
 	region.etcdClient, err = clientv3.New(clientv3.Config{
 		Endpoints:   []string{util.ETCD_ENDPOINT},
 		DialTimeout: 5 * time.Second,
 	})
-	if err != nil {  
-		fmt.Printf("master error >>> etcd connect error: %v", err)  
-	}  
+	if err != nil {
+		fmt.Printf("master error >>> etcd connect error: %v", err)
+	}
 	defer region.etcdClient.Close()
 	go region.keepalive()
 
-
 	//连接数据库文件
-	region.db, err = sql.Open("sqlite3","./data/"+host+".db")
+	filePath := "./data/" + host + ".db"
+	_, err = os.Create(filePath)
+	if err != nil {
+		fmt.Printf("Failed to create database file: %v\n", err)
+		return
+	}
+	region.db, err = sql.Open("sqlite3", filePath)
 	if err != nil {
 		fmt.Printf("Database creation failed: %v\n", err)
 		return
@@ -56,7 +71,7 @@ func (region *Region) Init(host string) {
 	rpc.Register(region)
 	rpc.HandleHTTP()
 	// 启动server
-	l, err := net.Listen("tcp",  ":"+host)
+	l, err := net.Listen("tcp", ":"+host)
 	if err != nil {
 		fmt.Println("Accept error:", err)
 	}
@@ -65,10 +80,9 @@ func (region *Region) Init(host string) {
 		time.Sleep(10 * time.Second)
 	}
 
-
 }
 
-//在etcd中通过租约来保持心跳
+// 在etcd中通过租约来保持心跳
 func (region *Region) keepalive() {
 
 	for {
@@ -84,7 +98,7 @@ func (region *Region) keepalive() {
 			continue
 		}
 
-		ch, err := region.etcdClient.KeepAlive(context.Background(),lease.ID)
+		ch, err := region.etcdClient.KeepAlive(context.Background(), lease.ID)
 		if err != nil {
 			log.Printf("etcd keepalive error")
 			continue
@@ -96,37 +110,32 @@ func (region *Region) keepalive() {
 
 }
 
-func (region *Region)foundhostIP()string{
-	// 获取本机的主要IP地址  
-	conn, err := net.Dial("udp", "8.8.8.8:80")  
-	if err != nil {  
-		fmt.Println(err)  
-	}  
-	defer conn.Close()  
-  
-	localAddr := conn.LocalAddr().(*net.UDPAddr)  
-	localIP:=localAddr.IP.String()  
-	fmt.Println("Local IP address:", localIP)  
+func (region *Region) foundhostIP() string {
+	// 获取本机的主要IP地址
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer conn.Close()
 
-	
-	// 检查localIP是否在Region_IPs中  
-	found := false  
-	for _, ip := range util.Region_IPs {  
-		if ip == localIP {  
-			found = true  
-			break  
-		}  
-	}  
-	
-	if found {  
-		fmt.Println("Local IP found in Region_IPs")  
-		return localIP  
-	} else {  
-		fmt.Println("Local IP not found in Region_IPs")  
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	localIP := localAddr.IP.String()
+	fmt.Println("Local IP address:", localIP)
+
+	// 检查localIP是否在Region_IPs中
+	found := false
+	for _, ip := range util.Region_IPs {
+		if ip == localIP {
+			found = true
+			break
+		}
+	}
+
+	if found {
+		fmt.Println("Local IP found in Region_IPs")
+		return localIP
+	} else {
+		fmt.Println("Local IP not found in Region_IPs")
 		return "localhost"
-	}  
-	
-
+	}
 }
-
-
