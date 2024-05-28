@@ -8,3 +8,5 @@ go run main.go client l
 （必须加l意思是local）
 
 其中region的data数据都保存在./data/[port_name].db文件中
+
+打开etcd-v3.4.31-windows-amd64目录，已配置好config，打开一个终端输入.\etcd.exe --config-file .\config.yml
