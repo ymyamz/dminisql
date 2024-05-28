@@ -190,22 +190,22 @@ func (region *Region) Insert(data []string, reply *string) error {
 		log.Fatal(err)
 	}
 
-	if region.backupIP != "" {
-		fmt.Println("backup region is " + region.backupIP)
-		rpcBackupRegion, err := rpc.DialHTTP("tcp", "localhost:"+region.backupIP)
-		if err != nil {
-			log.Printf("fail to connect to backup %v", region.backupIP)
-			return nil
-		}
-		// backup's Region.Process must return nil error
-		_, err = util.TimeoutRPC(rpcBackupRegion.Go("Region.Insert", &data, &reply, nil), util.TIMEOUT_S)
-		if err != nil {
-			log.Printf("%v's Region.Process timeout", region.backupIP)
-			return nil
-		}
-	} else {
-		fmt.Println("no backup region!")
-	}
+	// if region.backupIP != "" {
+	// 	fmt.Println("backup region is " + region.backupIP)
+	// 	rpcBackupRegion, err := rpc.DialHTTP("tcp", "localhost:"+region.backupIP)
+	// 	if err != nil {
+	// 		log.Printf("fail to connect to backup %v", region.backupIP)
+	// 		return nil
+	// 	}
+	// 	// backup's Region.Process must return nil error
+	// 	_, err = util.TimeoutRPC(rpcBackupRegion.Go("Region.Insert", &data, &reply, nil), util.TIMEOUT_S)
+	// 	if err != nil {
+	// 		log.Printf("%v's Region.Process timeout", region.backupIP)
+	// 		return nil
+	// 	}
+	// } else {
+	// 	fmt.Println("no backup region!")
+	// }
 
 	return nil
 }
@@ -234,6 +234,32 @@ func (region *Region) Execute(input string, reply *string) error {
 			log.Printf("%v's Region.Process timeout", region.backupIP)
 			return nil
 		}
+	}
+	return nil
+}
+
+// 非查询类
+func (region *Region) Exe(input string, reply *string) error {
+	fmt.Println("Execute input:", input)
+	_, err := region.db.Exec(input)
+	if err != nil {
+		fmt.Printf("Execute failed: %v\n", err)
+		*reply = "Execute failed"
+		return nil
+	}
+	*reply = "Execute success"
+	fmt.Println("Execute success")
+	MasterClient, err := rpc.DialHTTP("tcp", "localhost"+util.MASTER_IP_LOCAL)
+	if err != nil {
+		log.Printf("Master connection error")
+		return nil
+	}
+	defer MasterClient.Close()
+	//IncrementBusyNum
+	_, err = util.TimeoutRPC(MasterClient.Go("Master.IncrementBusyNum", region.hostIP, &reply, nil), util.TIMEOUT_S)
+	if err != nil {
+		log.Printf("Master IncrementBusyNum error")
+		return nil
 	}
 	return nil
 }
@@ -295,6 +321,18 @@ func (region *Region) Query(input string, reply *string) error {
 		response += rowOutput + "\n"
 	}
 	*reply = response
+	MasterClient, err := rpc.DialHTTP("tcp", "localhost"+util.MASTER_IP_LOCAL)
+	if err != nil {
+		log.Printf("Master connection error")
+		return nil
+	}
+	defer MasterClient.Close()
+	//IncrementBusyNum
+	_, err = util.TimeoutRPC(MasterClient.Go("Master.IncrementBusyNum", region.hostIP, &reply, nil), util.TIMEOUT_S)
+	if err != nil {
+		log.Printf("Master IncrementBusyNum error")
+		return nil
+	}
 	return nil
 }
 
@@ -372,7 +410,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 		fmt.Printf(ip, " rpc.DialHTTP err: %v")
 	} else {
 		//重新写server和backup的IP
-		region.serverIP=""
+		region.serverIP = ""
 		region.backupClient = client
 		region.backupIP = ip
 		// 通知backup下载data.db,直接覆盖了本地data.db

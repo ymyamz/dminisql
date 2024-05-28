@@ -56,6 +56,8 @@ func (client *Client) Run() {
 		if input == "exit" {
 			call_func := "Master.SaveToFile"
 			client.connect_to_master(call_func, "master.gob")
+			call_func = "Master.LoadBalance"
+			client.connect_to_master(call_func, "")
 			break
 		}
 		//如果是文件读入 例如".read ./sql/test.txt"
@@ -97,7 +99,8 @@ func (client *Client) Run() {
 		}
 		call_func := "Master.SaveToFile"
 		client.connect_to_master(call_func, "master.gob")
-		
+		call_func = "Master.LoadBalance"
+		client.connect_to_master(call_func, "")
 	}
 
 }
@@ -159,7 +162,7 @@ func (client *Client) parse_sql_statement(input string) {
 			client.connect_to_master(call_func, "no use")
 		}
 		//用于查询master当前属性
-		if items[1] == "info"{
+		if items[1] == "info" {
 			call_func := "Master.ShowNowInfo"
 			client.connect_to_master(call_func, "no use")
 		}
