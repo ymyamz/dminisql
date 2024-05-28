@@ -451,7 +451,9 @@ func (master *Master) TableCreateIn(input string, best string) error {
 	_, found := master.TableIP[table_name]
 	if found {
 		//*reply = "table already exists"
-		fmt.Println("table already exists", table_name)
+		fmt.Println("table already exists")
+		fmt.Println(found)
+		fmt.Println(master.TableIP[table_name])
 	} else {
 
 		rpcRegion := master.RegionClients[best]
