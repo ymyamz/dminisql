@@ -150,7 +150,9 @@ func (master *Master) Init(mode string) {
 	master.RegionClients = make(map[string]*rpc.Client)
 	master.Backup = make(map[string]string)
 	master.Available = ""
-	if err != nil {
+	//if err == nil {
+	//test init
+	if false  {
 		// Successfully loaded from file
 		master.fromSerializable(serializableMaster)
 		fmt.Println("Master struct loaded from file")
@@ -175,7 +177,7 @@ func (master *Master) Init(mode string) {
 		// 	master.RegionIPList = util.Region_IPs_LOCAL
 		// }
 		available_list := master.getAvailableRegions()
-		fmt.Println("Available regions:", available_list)
+		fmt.Println("etcd find regions:", available_list)
 		master.assignment(available_list)
 		//打印分配后的结果（Available，RegionIPList）
 
@@ -183,7 +185,6 @@ func (master *Master) Init(mode string) {
 		for i, region_ip := range master.RegionIPList {
 			fmt.Println("Region", i, ":", region_ip, " backup:", master.Backup[region_ip])
 		}
-		//有待初始化region的backup
 
 		master.RegionCount = len(master.RegionIPList)
 		master.BusyOperationNum = make(map[string]int)
@@ -201,7 +202,15 @@ func (master *Master) Init(mode string) {
 			fmt.Println("master init >>> region rpc dial success:", region_ip)
 			master.RegionClients[region_ip] = client
 			master.BusyOperationNum[region_ip] = 0
+			
+			//通知server服务器它的backup服务器是谁,注意需要等待返回后才能下一步（不可是异步的，会冲突报错）
+			var res string
+			err = client.Call("Region.AssignBackup", master.Backup[region_ip], &res)  
+			if err != nil {
+				fmt.Println("SYSTEM HINT>>> timeout, region down!")
+			}
 
+			//初始化backup服务器
 			bkclient, err := rpc.DialHTTP("tcp", "localhost:"+master.Backup[region_ip])
 			if err != nil {
 				fmt.Println("master error >>> bkup region rpc dial error:", err)
@@ -209,7 +218,6 @@ func (master *Master) Init(mode string) {
 			}
 			fmt.Println("master init >>> bkup region rpc dial success:", master.Backup[region_ip])
 			master.RegionClients[master.Backup[region_ip]] = bkclient
-			master.BusyOperationNum[master.Backup[region_ip]] = 0
 		}
 
 		//初始化索引

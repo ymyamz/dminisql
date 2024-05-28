@@ -182,8 +182,8 @@ func extractTable(s string) string {
 			}
 		}
 	}
-
-	return ""
+	//没有特殊字符，直接返回原字符串
+	return s
 }
 
 // 创建索引
