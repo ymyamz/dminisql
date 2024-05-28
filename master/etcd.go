@@ -16,7 +16,11 @@ import (
 // 如果list是单数，返回相对应的主从server和backup字符串数组，和一个落单的avaiable;
 // 如果list是双数，返回相对应的主从server和backup字符串数组，avaiable=""。
 func (master *Master) assignment(available_list []string) {
-
+	if len(available_list)==1{
+		fmt.Println("Region num must >= 2")
+		return
+	}
+	
 	if len(available_list)%2 == 1 {
 		num := (len(available_list) + 1) / 2
 		master.Available = available_list[0]
@@ -180,15 +184,24 @@ func (master *Master) deleteserver(IP string) {
 		master.Available = ""
 		//拨号通知server他的backup
 		var suc bool
-		_, err = util.TimeoutRPC(client.Go("Region.AssignBackup", master.Backup[new_server], &suc, nil), util.TIMEOUT_M)
+		err = client.Call("Region.AssignBackup", master.Backup[new_server], &suc)  
 		if err != nil {
 			fmt.Println("region return err ", err)
 		}
 		fmt.Println("server " + IP + " down, " + new_server + "change to server with backup is " + master.Backup[new_server])
 
 	} else {
-		//把backup中内容都转存到某个ip中
-		//TODO
+		// 把server-backup中内容都转存到best pair中
+		// backup 变成available
+		serverClient := master.RegionClients[IP]
+		var suc string
+		_, err := util.TimeoutRPC(serverClient.Go("Region.TransferToBestPair", "", &suc, nil), util.TIMEOUT_M)
+		if err != nil {
+			fmt.Println("server "+IP+" TransferToBestPair return err ", err)
+		}
+		fmt.Println(" server " + IP + " change to " + suc)
+		master.Available = IP
+		master.DeleteRegionInfo(IP, true)
 	}
 }
 
@@ -213,7 +226,7 @@ func (master *Master) deletebackup(IP string) {
 		client := master.RegionClients[server]
 
 		var suc bool
-		_, err := util.TimeoutRPC(client.Go("Region.AssignBackup", master.Backup[server], &suc, nil), util.TIMEOUT_M)
+		err := client.Call("Region.AssignBackup", master.Backup[server], &suc)  
 		if err != nil {
 			fmt.Println("AssignBackup return err ", err)
 		}
@@ -222,7 +235,63 @@ func (master *Master) deletebackup(IP string) {
 		master.Available = ""
 	} else {
 		//把backup中内容都转存到某个server pair中,backup转为available
-		//TODO
+		// 应该只有region挂了，还没有available才会单独去删backup
+		bkClient := master.RegionClients[IP]
+		var server string
+		_, err := util.TimeoutRPC(bkClient.Go("Region.GetServer", "", &server, nil), util.TIMEOUT_M)
+		if err != nil {
+			fmt.Println("GetServer return err ", err)
+		}
+		var suc string
+		_, err = util.TimeoutRPC(bkClient.Go("Region.TransferToBestPair", "", &suc, nil), util.TIMEOUT_M)
+		if err != nil {
+			fmt.Println("AssignBackup return err ", err)
+		}
+		fmt.Println(" backup " + IP + " change to server: " + suc + " & backup: " + master.Backup[suc])
+		master.Available = IP
+		master.DeleteRegionInfo(IP, false)
+		// 恢复client 和ip list 因为是available
+		new_client, err := rpc.DialHTTP("tcp", "localhost"+IP) // 可能会改
+		if err != nil {
+			fmt.Println("master error >>> region rpc "+"localhost"+IP+" dial error:", err)
+			return
+		}
+		master.RegionClients[IP] = new_client
+		master.RegionIPList = append(master.RegionIPList, IP)
+
+		// 尝试删除server的信息，不确定挂了是不是还在
+		master.DeleteRegionInfo(server, true)
+	}
+
+}
+
+func (master *Master) DeleteRegionInfo(IP string, server bool) {
+	//删除client
+	client, ok := master.RegionClients[IP]
+	if ok {
+		client.Close()
+		delete(master.RegionClients, IP)
+	}
+	// ??? Region Count 需要--吗
+	if server {
+		// 删除owntable list
+		delete(master.Owntablelist, IP)
+		// 删除tableip
+		err := util.DeleteValueFromMap(&master.TableIP, IP)
+		if err != nil {
+			fmt.Println("Server has been deleted, do not need to delete the master.Backup using backupip")
+			return
+		}
+		util.DeleteFromSlice(&master.RegionIPList, IP)
+		// 删除backup
+		delete(master.Backup, IP)
+		// 删除BusyOperationNum
+		delete(master.BusyOperationNum, IP)
+	} else {
+		err := util.DeleteValueFromMap(&master.Backup, IP)
+		if err != nil {
+			fmt.Println("Server has been deleted, do not need to delete the master.Backup using backupip")
+		}
 	}
 
 }

@@ -20,7 +20,7 @@ master默认为etcd-node1,172.20.0.10！！！client可以随便在哪里节点�
 create table user(name TEXT,address TEXT);
 show tables;
 
-INSERT INTO user (name, address) VALUES ('John Doe', '123 Main Street');  
+INSERT INTO user (name, address) VALUES ('John Doe', '123 Main Street');
 SELECT * FROM user;  
 
 
@@ -29,6 +29,9 @@ show indexes;
 DROP INDEX index_name;
 （旧的init可以运行，新的好像有问题）
 
+go run main.go region l 8002
+select * from user cross join user1;
+
  select * from user cross join user2;
 
 
@@ -36,15 +39,15 @@ DROP INDEX index_name;
 create table user(name TEXT,address TEXT);
 
 create table user2(name TEXT,address TEXT);
-INSERT INTO user (name, address) VALUES ('John Doe', '123 Main Street');  
+INSERT INTO user (name, address) VALUES ('John Doe', '123 Main Street');
 
-INSERT INTO user2 (name, address) VALUES ('John Doe2', '1234 Main Street');  
+INSERT INTO user2 (name, address) VALUES ('John Doe2', '1234 Main Street');
 
  select * from user cross join user2;
 
 create table user3(name TEXT,address TEXT);
-INSERT INTO user3 (name, address) VALUES ('John Doe1', '123 Main Street');  
+INSERT INTO user3 (name, address) VALUES ('John Doe1', '123 Main Street');
 
-INSERT INTO user3 (name, address) VALUES ('John Doe2', '123 Main Street');  
+INSERT INTO user3 (name, address) VALUES ('John Doe2', '123 Main Street');
 
  select * from user cross join user3;

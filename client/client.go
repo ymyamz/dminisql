@@ -52,15 +52,49 @@ func (client *Client) Run() {
 		input = strings.ToLower(input)
 		input = strings.TrimSpace(input)
 		input = strings.ReplaceAll(input, "\\s+", " ")
-
+		
 		if input == "exit" {
 			call_func := "Master.SaveToFile"
 			client.connect_to_master(call_func, "master.gob")
 			break
 		}
-		//TODO sparse
-		client.parse_sql_statement(input)
-
+		//如果是文件读入 例如".read ./sql/test.txt"
+		if input[0] == '.' {
+			if input[1:5] == "read" {
+				//读取文件名（空格后面的内容）
+				file_name := input[6:]
+				file, err := os.Open(file_name)
+				if err != nil {
+					fmt.Println("CLIENT ERROR>>> open file error:", err)
+					continue
+				}
+				defer file.Close()
+				//读取文件内容
+				scanner := bufio.NewScanner(file)
+				for scanner.Scan() {
+					line := scanner.Text()
+					if line == "" {
+						continue
+					}
+					//去掉line两边的空格和末尾的分号
+					line = strings.TrimSpace(line)
+					if line[len(line)-1] == ';' {
+						line = line[:len(line)-1]
+					}
+					line = strings.ToLower(line)
+					line = strings.ReplaceAll(line, "\\s+", " ")
+					fmt.Println(line)
+					client.parse_sql_statement(line)
+				}
+				if err := scanner.Err(); err != nil {
+					fmt.Println("CLIENT ERROR>>> read file error:", err)
+					continue
+				}
+			} 
+		}else{
+		//如果是正常执行语句
+			client.parse_sql_statement(input)
+		}
 	}
 
 }
@@ -171,6 +205,8 @@ func (client *Client) parse_sql_statement(input string) {
 				client.connect_to_region(region_ip, call_func, input)
 			}
 
+		}else{
+			fmt.Println("CLIENT ERROR>>> unknow sql statement:", input)
 		}
 
 	}
@@ -197,6 +233,7 @@ func (client *Client) prepocess_sql(input string) (string, string) {
 		}
 	} else {
 		table = ""
+
 	}
 	return table, call_func
 }

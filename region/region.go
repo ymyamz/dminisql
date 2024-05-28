@@ -139,3 +139,7 @@ func (region *Region) foundhostIP() string {
 		return "localhost"
 	}
 }
+
+func (region *Region) GetServer(placeholder string, result *string) {
+	*result = region.serverIP
+}
