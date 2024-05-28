@@ -16,7 +16,11 @@ import (
 // 如果list是单数，返回相对应的主从server和backup字符串数组，和一个落单的avaiable;
 // 如果list是双数，返回相对应的主从server和backup字符串数组，avaiable=""。
 func (master *Master) assignment(available_list []string) {
-
+	if len(available_list)==1{
+		fmt.Println("Region num must >= 2")
+		return
+	}
+	
 	if len(available_list)%2 == 1 {
 		num := (len(available_list) + 1) / 2
 		master.Available = available_list[0]
@@ -180,7 +184,7 @@ func (master *Master) deleteserver(IP string) {
 		master.Available = ""
 		//拨号通知server他的backup
 		var suc bool
-		_, err = util.TimeoutRPC(client.Go("Region.AssignBackup", master.Backup[new_server], &suc, nil), util.TIMEOUT_M)
+		err = client.Call("Region.AssignBackup", master.Backup[new_server], &suc)  
 		if err != nil {
 			fmt.Println("region return err ", err)
 		}
@@ -222,7 +226,7 @@ func (master *Master) deletebackup(IP string) {
 		client := master.RegionClients[server]
 
 		var suc bool
-		_, err := util.TimeoutRPC(client.Go("Region.AssignBackup", master.Backup[server], &suc, nil), util.TIMEOUT_M)
+		err := client.Call("Region.AssignBackup", master.Backup[server], &suc)  
 		if err != nil {
 			fmt.Println("AssignBackup return err ", err)
 		}
