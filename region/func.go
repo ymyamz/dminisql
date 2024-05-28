@@ -369,7 +369,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 
 		var res []string
 		args := SaveFileArgs{
-			FileName:     "./data/" + region.hostIP + ".db",
+			FileName:     region.hostIP + ".db",
 			SaveFileName: "",
 		}
 		// 通知backup从ftp获取data.db

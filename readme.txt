@@ -20,6 +20,7 @@ master默认为etcd-node1,172.20.0.10！！！client可以随便在哪里节点�
 create table user(name TEXT,address TEXT);
 show tables;
 
+
 INSERT INTO user (name, address) VALUES ('John Doe', '123 Main Street');
 SELECT * FROM user;  
 
@@ -32,7 +33,7 @@ DROP INDEX index_name;
 go run main.go region l 8002
 select * from user cross join user1;
 
- select * from user cross join user2;
+select * from user cross join user2;
 
 
 
