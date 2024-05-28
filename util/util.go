@@ -29,7 +29,7 @@ const (
 	//DB_FILEPATH   = "/data/app/etcd/data.db"
 	//本地使用：
 	DB_FILEPATH        = "data.db"
-	BUSY_THRESHOLD     = 100
+	BUSY_THRESHOLD     = 1
 	REMOTE_WORKING_DIR = "/data/gopath/dminisql/data"
 	LOCAL_WORKING_DIR  = "data"
 	FILE_PORT          = ":21"

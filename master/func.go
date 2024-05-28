@@ -421,13 +421,17 @@ func (master *Master) FindBest(placeholder string, best *string) error {
 			min, *best = len(*pTables), ip
 		}
 	}
+	if *best == "" {
+		*best = master.RegionIPList[0]
+	}
 	return nil
 }
 
 // 将table移到region中
-func (master *Master) Move(args util.MoveStruct, re *string) {
+func (master *Master) Move(args util.MoveStruct, re *string) error {
 	table := args.Table
 	region := args.Region
+	fmt.Println("HHHHHHHHHHHHHHHHHHHHHHHHHHH")
 	fmt.Println("master move.called")
 	oldip := master.TableIP[table]
 	rpcOldRegion := master.RegionClients[oldip]
@@ -482,6 +486,7 @@ func (master *Master) Move(args util.MoveStruct, re *string) {
 		fmt.Println("RESULT>>> failed ", call3.Error)
 	}
 	master.TableIP[table] = region
+	return nil
 }
 
 func (master *Master) TableCreateIn(input string, best string) error {
