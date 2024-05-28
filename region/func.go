@@ -249,6 +249,18 @@ func (region *Region) Exe(input string, reply *string) error {
 	}
 	*reply = "Execute success"
 	fmt.Println("Execute success")
+	MasterClient, err := rpc.DialHTTP("tcp", "localhost"+util.MASTER_IP_LOCAL)
+	if err != nil {
+		log.Printf("Master connection error")
+		return nil
+	}
+	defer MasterClient.Close()
+	//IncrementBusyNum
+	_, err = util.TimeoutRPC(MasterClient.Go("Master.IncrementBusyNum", region.hostIP, &reply, nil), util.TIMEOUT_S)
+	if err != nil {
+		log.Printf("Master IncrementBusyNum error")
+		return nil
+	}
 	return nil
 }
 
