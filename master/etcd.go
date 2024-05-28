@@ -221,7 +221,7 @@ func (master *Master) deleteserver(IP string) {
 
 
 	} else {
-		util.DeleteFromSlice(&master.RegionIPList, IP)
+		
 		// 把server-backup中内容都转存到best pair中
 		// backup 变成available
 		backup_ip := master.Backup[IP]
@@ -259,6 +259,7 @@ func (master *Master) deleteserver(IP string) {
 		master.DeleteRegionInfo(IP, true)
 		//backup清空变成avaiable
 		master.Available = backup_ip
+		util.DeleteFromSlice(&master.RegionIPList, IP)
 
 	}
 }

@@ -285,6 +285,7 @@ func (master *Master) InitTableIP() {
 
 // 询问master某个table在哪个ip的region中
 func (master *Master) GetTableIP(table string, reply *string) error {
+	fmt.Println("master gettableip called", table)
 	if _, ok := master.TableIP[table]; !ok {
 		*reply = ""
 	}
