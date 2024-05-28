@@ -429,7 +429,7 @@ func (master *Master) FindBest(obmit string, best *string) error {
 	if busy {
 		master.check_and_reset_Regions()
 	}
-	fmt.Println("regionlist is ",master.RegionIPList)
+	fmt.Println("regionlist is ", master.RegionIPList)
 	fmt.Println("obmit is ", obmit)
 
 	if *best == "" {
@@ -558,6 +558,9 @@ func (master *Master) MoveHalf(args util.MoveStruct, re *string) error {
 }
 
 func (master *Master) LoadBalance(placeholder string, re *string) error {
+	if len(master.RegionIPList) <= 1 {
+		return nil
+	}
 	for i := range master.RegionIPList {
 		if master.BusyOperationNum[master.RegionIPList[i]] > util.BUSY_THRESHOLD {
 			args := util.MoveStruct{
