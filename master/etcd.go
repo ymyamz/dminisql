@@ -216,6 +216,7 @@ func (master *Master) deleteserver(IP string) {
 		// backup 变成available
 		backup_ip := master.Backup[IP]
 		tableIP := master.TableIP
+
 		// client := master.RegionClients[backup_ip]
 
 		//保存table名

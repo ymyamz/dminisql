@@ -387,6 +387,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 
 		var res []string
 		args := SaveFileArgs{
+			ServerIP:     region.hostIP,
 			FileName:     region.hostIP + ".db",
 			SaveFileName: "",
 		}
@@ -400,6 +401,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 // 写一个转存函数，将region的data.db中的数据转存到best ip pair中？？
 // 在reply中写转存到哪个ip中了
 func (region *Region) TransferToBestPair(tableip map[string]string, reply *string) error {
+	fmt.Println("TransferToBestPair called")
 	var masterIp string
 	if util.Local {
 		masterIp = util.MASTER_IP_LOCAL
@@ -466,6 +468,8 @@ func (region *Region) SaveFileFromFTP(args SaveFileArgs, reply *string) error {
 
 	fileName := args.FileName
 	savefileName := args.SaveFileName
+	region.serverIP=args.ServerIP
+	fmt.Println("My server is: ", region.serverIP)
 	fmt.Println("SaveFileFromFTP called, save from ", args.FileName)
 	// connect FTP Server
 	conn, err := ftp.Dial("localhost" + util.FILE_PORT)
