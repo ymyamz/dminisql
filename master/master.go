@@ -31,6 +31,7 @@ type Master struct {
 	TableCnt         map[string]int       // table->count 存储本地数据库中table应该copy了多少次
 }
 
+
 // SerializableMaster is used for selective serialization
 type SerializableMaster struct {
 	RegionCount      int
