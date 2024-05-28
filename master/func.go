@@ -50,10 +50,12 @@ func (master *Master) TableCreate(input string, reply *string) error {
 				min, best = len(*pTables), ip
 			}
 		}
+		backup := master.Backup[best]
 
 		rpcRegion := master.RegionClients[best]
 		fmt.Println("best_ip:", best)
 		master.BusyOperationNum[best] += 1
+		master.BusyOperationNum[backup] += 1
 
 		var res string
 		//创建表
@@ -63,7 +65,7 @@ func (master *Master) TableCreate(input string, reply *string) error {
 		}
 		master.TableIP[table_name] = best
 		util.AddToSlice(master.Owntablelist[best], table_name)
-		*reply = "table created in region " + best
+
 	}
 	fmt.Println("region return ", *reply)
 	return nil

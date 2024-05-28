@@ -469,8 +469,6 @@ func (region *Region) SaveFileFromFTP(args SaveFileArgs, reply *string) error {
 
 	// 创建本地文件
 	var localFilePath string
-	fmt.Println(localFilePath)
-	fmt.Println("hhhhhh")
 	if savefileName == "" {
 		localFilePath = filepath.Join("./data/", region.hostIP, util.GetPostfix(fileName))
 	} else {

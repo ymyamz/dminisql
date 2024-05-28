@@ -201,6 +201,15 @@ func (master *Master) Init(mode string) {
 			fmt.Println("master init >>> region rpc dial success:", region_ip)
 			master.RegionClients[region_ip] = client
 			master.BusyOperationNum[region_ip] = 0
+
+			bkclient, err := rpc.DialHTTP("tcp", "localhost:"+master.Backup[region_ip])
+			if err != nil {
+				fmt.Println("master error >>> bkup region rpc dial error:", err)
+				return
+			}
+			fmt.Println("master init >>> bkup region rpc dial success:", master.Backup[region_ip])
+			master.RegionClients[master.Backup[region_ip]] = bkclient
+			master.BusyOperationNum[master.Backup[region_ip]] = 0
 		}
 
 		//初始化索引
@@ -217,8 +226,6 @@ func (master *Master) Init(mode string) {
 		master.TableIP = make(map[string]string)
 		master.InitTableIP()
 
-		// Initialize backup
-		master.Backup = make(map[string]string)
 	}
 
 	// Save to file after initialization

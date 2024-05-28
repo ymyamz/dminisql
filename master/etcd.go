@@ -262,7 +262,6 @@ func (master *Master) deletebackup(IP string) {
 }
 
 func (master *Master) DeleteRegionInfo(IP string, server bool) {
-	util.DeleteFromSlice(&master.RegionIPList, IP)
 	//删除client
 	client, ok := master.RegionClients[IP]
 	if ok {
@@ -279,6 +278,7 @@ func (master *Master) DeleteRegionInfo(IP string, server bool) {
 			fmt.Println("Server has been deleted, do not need to delete the master.Backup using backupip")
 			return
 		}
+		util.DeleteFromSlice(&master.RegionIPList, IP)
 		// 删除backup
 		delete(master.Backup, IP)
 		// 删除BusyOperationNum
