@@ -411,7 +411,7 @@ func (master *Master) Complex_query(input string, reply *string) error {
 	return nil
 }
 
-func (master *Master) FindBest(placeholder string, best *string) string {
+func (master *Master) FindBest(placeholder string, best *string) error {
 	min := math.MaxInt
 	*best = ""
 	for ip, pTables := range master.Owntablelist {
@@ -419,7 +419,7 @@ func (master *Master) FindBest(placeholder string, best *string) string {
 			min, *best = len(*pTables), ip
 		}
 	}
-	return *best
+	return nil
 }
 
 // 将table移到region中

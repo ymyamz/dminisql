@@ -388,13 +388,13 @@ func (region *Region) TransferToBestPair(placeholder string, reply *string) erro
 	} else {
 		masterIp = util.MASTER_IP
 	}
-	MasterClient, err := rpc.DialHTTP("tcp", masterIp+util.MASTER_PORT)
+	MasterClient, err := rpc.DialHTTP("tcp","localhost"+masterIp)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return err
 	}
 	var bestIp string
-	_, err = util.TimeoutRPC(MasterClient.Go("Master.FindBest", "", &bestIp, nil), util.TIMEOUT_S)
+	err = MasterClient.Call("Master.FindBest", "", &bestIp)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return err

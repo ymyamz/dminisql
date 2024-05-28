@@ -214,6 +214,14 @@ func (master *Master) deleteserver(IP string) {
 		// backup 变成available
 		backup_ip:=master.Backup[IP]
 		client := master.RegionClients[backup_ip]
+		
+		//保存table名
+		table_name:=*master.Owntablelist[IP]
+		
+		//从master中删除server和backup的信息
+		master.DeleteRegionInfo(backup_ip, false)
+		master.DeleteRegionInfo(IP, true)
+
 		var accept_ip string
 		_, err := util.TimeoutRPC(client.Go("Region.TransferToBestPair", "", &accept_ip, nil), util.TIMEOUT_M)
 		if err != nil {
@@ -222,41 +230,43 @@ func (master *Master) deleteserver(IP string) {
 		fmt.Println(" server " + IP + "'s content transfer to " +  accept_ip)
 
 		//table都转存到table_accept_ip中
-		for table, ip := range master.TableIP {
-			if ip == IP {
-				master.TableIP[table] =  accept_ip
-			}
+		//遍历table_name，类型是[]string
+		
+		for _, table := range table_name {
+			master.TableIP[table] = accept_ip
 		}
+		*master.Owntablelist[accept_ip]=append(*master.Owntablelist[accept_ip],table_name...)
+
 		var res string
 		//删除backup中的所有信息
 		_, err = util.TimeoutRPC(client.Go("Region.ClearAllData", "", &res, nil), util.TIMEOUT_M)
 		if err != nil {
 			fmt.Println("Clear Region  "+backup_ip+" return err ", err)
 		}
-
+		//backup清空变成avaiable
 		master.Available = backup_ip
 
-		//从master中删除server和backup的信息
-		master.DeleteRegionInfo(backup_ip, false)
-		master.DeleteRegionInfo(IP, true)
 	}
 }
 //如果backup挂了
 func (master *Master) deletebackup(IP string) {
+	//查询backup中是哪个server的值是IP
+	server := ""
+	for k, v := range master.Backup {
+		if v == IP {
+			server = k
+			break
+		}
+	}
+	if server == "" {
+		fmt.Printf("backup for %v not found", IP)
+		return
+	}
+
 	if master.Available != "" {
 		//把avaiable设为backup
 		//查询backup中是哪个server的值是IP
-		server := ""
-		for k, v := range master.Backup {
-			if v == IP {
-				server = k
-				break
-			}
-		}
-		if server == "" {
-			fmt.Printf("master error >>> backup %v not found", IP)
-			return
-		}
+		
 		new_backup := master.Available
 		master.Available = ""
 		master.Backup[server] = new_backup
@@ -269,22 +279,11 @@ func (master *Master) deletebackup(IP string) {
 
 	} else {
 		//把server中内容都转存到某个server pair中,server转为available
-		//查询是哪个server的值是IP
-		server := ""
-		for k, v := range master.Backup {
-			if v == IP {
-				server = k
-				break
-			}
-		}
-		if server == "" {
-			fmt.Printf("Server for backup %v not found", IP)
-			return
-		}
+		
 		//转存到accept_ip中
 		client := master.RegionClients[server]
 		var accept_ip string
-		_, err := util.TimeoutRPC(client.Go("Region.TransferToBestPair", "", &accept_ip, nil), util.TIMEOUT_M)
+		err := client.Call("Region.TransferToBestPair", "", &accept_ip)
 		if err != nil {
 			fmt.Println("server "+server+" TransferToBestPair return err ", err)
 		}
