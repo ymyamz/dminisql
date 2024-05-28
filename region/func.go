@@ -365,7 +365,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 		if err != nil {
 			fmt.Println("Error:", err)
 		}
-		
+
 		var res []string
 		args := SaveFileArgs{
 			FileName:     "./data/" + region.hostIP + ".db",
@@ -379,6 +379,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 }
 
 // 写一个转存函数，将region的data.db中的数据转存到best ip pair中？？
+//在reply中写转存到哪个ip中了
 func (region *Region) TransferToBestPair(placeholder string, reply *string) error {
 	var masterIp string
 	if util.Local {
@@ -504,4 +505,8 @@ func (region *Region) SaveFileFromFTP(args SaveFileArgs, reply *string) error {
 
 	fmt.Println("File downloaded successfully")
 	return nil
+}
+//把region本地的data.db删了
+func (region *Region)ClearAllData(input string, reply *string)error{
+
 }

@@ -1,7 +1,6 @@
 package util
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/rpc"
@@ -85,7 +84,8 @@ func DeleteValueFromMap(mp *map[string]string, value string) error {
 		}
 	}
 	if len(keysToDelete) == 0 {
-		return errors.New("value not found in map")
+		//return errors.New("value not found in map")
+		return nil
 	}
 	for _, table := range keysToDelete {
 		delete(*mp, table)
