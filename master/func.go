@@ -76,6 +76,8 @@ func (master *Master) TableCreate(input string, reply *string) error {
 			//}
 			master.TableIP[table_name] = best
 			util.AddToSlice(master.Owntablelist[best], table_name)
+			//增加tableindex的初始化
+			master.TableIndex[table_name] = &[]string{}
 			*reply = "table created on region " + best
 		}
 
@@ -252,7 +254,7 @@ func (master *Master) IndexCreate(input string, reply *string) error {
 		master.IndexInfo[index_name] = table_name
 		//fmt.Println("!!2")
 		//master.tableIndex[table_name] = index_name
-		util.AddToSliceIndex(master.TableIndex[table_name], index_name)
+		util.AddToSlice(master.TableIndex[table_name], index_name)
 		//fmt.Println("!!3")
 		*reply = "index created on region " + ip
 		fmt.Println("region return ", *reply)

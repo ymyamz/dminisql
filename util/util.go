@@ -118,7 +118,7 @@ func CleanDir(localDir string) {
 func AddToSliceIndex(ptr *[]string, newString string) {
 	// 如果指针为nil，创建一个新的切片
 	if ptr == nil {
-		ptr = new([]string) // 分配内存给切片
+		*ptr= make([]string, 0)
 	}
 
 	// 添加新的字符串到切片中
