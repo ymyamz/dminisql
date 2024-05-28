@@ -335,3 +335,8 @@ func (master *Master) InitIndex(table string) {
 	//}
 
 }
+
+func (master *Master) AllTableIp(placeholder string, reply *map[string]string) error {
+	*reply = master.TableIP
+	return nil
+}

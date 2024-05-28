@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/rpc"
@@ -32,6 +33,11 @@ const (
 	LOCAL_WORKING_DIR  = "data"
 	FILE_PORT          = ":21"
 )
+
+type MoveStruct struct {
+	Table  string
+	Region string
+}
 
 var Region_IPs []string
 var Region_IPs_LOCAL []string
@@ -69,6 +75,22 @@ func DeleteFromSlice(pSlice *[]string, str string) bool {
 	(*pSlice)[index] = (*pSlice)[len(*pSlice)-1]
 	*pSlice = (*pSlice)[:len(*pSlice)-1]
 	return true
+}
+
+func DeleteValueFromMap(mp *map[string]string, value string) error {
+	var keysToDelete []string
+	for key, v := range *mp {
+		if v == value {
+			keysToDelete = append(keysToDelete, key)
+		}
+	}
+	if len(keysToDelete) == 0 {
+		return errors.New("value not found in map")
+	}
+	for _, table := range keysToDelete {
+		delete(*mp, table)
+	}
+	return nil
 }
 
 func AddToSlice(ptr *[]string, newString string) {

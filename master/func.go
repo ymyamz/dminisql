@@ -110,6 +110,7 @@ func (master *Master) TableDrop(input string, reply *string) error {
 		// 获取要删除表的服务器 IP 地址
 		ip := master.TableIP[table_name]
 		rpcRegion := master.RegionClients[ip]
+		master.BusyOperationNum[ip] += 1
 		var res string
 
 		// 调用远程过程执行 SQL 命令
@@ -357,7 +358,12 @@ func (master *Master) Join(input string, reply *string) error {
 	//迁移
 	for i := 0; i < size; i++ {
 		if ip[i] != best {
-			master.Move(tables[i], best)
+			args := util.MoveStruct{
+				Table:  tables[i],
+				Region: best,
+			}
+			var tmp string
+			master.Move(args, &tmp)
 		}
 	}
 
@@ -385,17 +391,21 @@ func (master *Master) Join(input string, reply *string) error {
 	return nil
 }
 
-func (master *Master) FindBest(placeholder string, reply *string) string {
-	min, best := math.MaxInt, ""
+func (master *Master) FindBest(placeholder string, best *string) string {
+	min := math.MaxInt
+	*best = ""
 	for ip, pTables := range master.Owntablelist {
 		if len(*pTables) < min && master.BusyOperationNum[ip] < util.BUSY_THRESHOLD {
-			min, best = len(*pTables), ip
+			min, *best = len(*pTables), ip
 		}
 	}
-	return best
+	return *best
+}
 
 // 将table移到region中
-func (master *Master) Move(table string, region string) {
+func (master *Master) Move(args util.MoveStruct, re *string) {
+	table := args.Table
+	region := args.Region
 	fmt.Println("master move.called")
 	oldip := master.TableIP[table]
 	rpcOldRegion := master.RegionClients[oldip]
@@ -449,6 +459,7 @@ func (master *Master) Move(table string, region string) {
 	if call3.Error != nil {
 		fmt.Println("RESULT>>> failed ", call3.Error)
 	}
+	master.TableIP[table] = region
 }
 
 func (master *Master) TableCreateIn(input string, best string) error {
