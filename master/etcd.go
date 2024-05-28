@@ -176,7 +176,7 @@ func (master *Master) deleteserver(IP string) {
 	if master.Available != "" {
 		//从master.RegionIPList中删除
 		util.DeleteFromSlice(&master.RegionIPList, IP)
-
+		
 		//删除client
 		client, ok := master.RegionClients[IP]
 		if ok {
@@ -191,6 +191,7 @@ func (master *Master) deleteserver(IP string) {
 			return
 		}
 		master.RegionClients[new_server] = new_client //添加到server列表
+		master.RegionIPList = append(master.RegionIPList, new_server)
 		//转移owntablelist
 		_, ok = master.Owntablelist[IP]
 		if ok {
@@ -208,10 +209,14 @@ func (master *Master) deleteserver(IP string) {
 		//拨号通知server他的backup
 		master.assignBackup(new_server, master.Backup[new_server])
 
+		master.RegionIPList = append(master.RegionIPList, new_server)
 		fmt.Println("server " + IP + " down, " + new_server + "change to server with backup is " + master.Backup[new_server])
-		//把backup存到client
+		
+		//把backup存到client??
+
 
 	} else {
+		util.DeleteFromSlice(&master.RegionIPList, IP)
 		// 把server-backup中内容都转存到best pair中
 		// backup 变成available
 		backup_ip := master.Backup[IP]
@@ -290,7 +295,7 @@ func (master *Master) deletebackup(IP string) {
 
 	} else {
 		//把server中内容都转存到某个server pair中,server转为available
-
+		util.DeleteFromSlice(&master.RegionIPList, server)
 		//转存到accept_ip中
 		tableIP := master.TableIP
 		// client := master.RegionClients[backup_ip]

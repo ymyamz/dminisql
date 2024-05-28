@@ -530,3 +530,16 @@ func (master *Master) TableCreateIn(input string, best string) error {
 	//fmt.Println("region return ", *reply)
 	return nil
 }
+
+func (master *Master) NowInfo(input string, reply *string) error {  
+    fmt.Println("master nowinfo called")  
+      
+    // 整理Master结构体的所有变量到res中  
+    res := fmt.Sprintf("Owntablelist: %v\nTableIP: %v\nBackup: %v\nAvailable: %s\nRegionIPList: %v\n",  
+        master.Owntablelist, master.TableIP, master.Backup, master.Available, master.RegionIPList)  
+  
+    // 存储到reply中  
+    *reply = res  
+  
+    return nil  
+}  
