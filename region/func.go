@@ -354,7 +354,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 	} else {
 		region.backupClient = client
 		region.backupIP = ip
-		//TODO 通知backup下载data.db,注意先删除backup本地可能存在的data.db 应该直接覆盖了就相当于删了
+		// 通知backup下载data.db,注意先删除backup本地可能存在的data.db 应该直接覆盖了就相当于删了
 
 		util.TransferFile(region.serverIP, ip+util.FILE_PORT, "./data/"+region.hostIP+".db")
 		backupClient, err := rpc.DialHTTP("tcp", region.backupIP+util.REGION_PORT)
@@ -371,8 +371,64 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 	return err
 }
 
-//写一个转存函数，将region的data.db中的数据转存到best ip pair中？？
-//TODO
+// 写一个转存函数，将region的data.db中的数据转存到best ip pair中？？
+func (region *Region) TransferToBestPair(placeholder string, reply *string) error {
+	var masterIp string
+	if util.Local {
+		masterIp = util.MASTER_IP_LOCAL
+	} else {
+		masterIp = util.MASTER_IP
+	}
+	MasterClient, err := rpc.DialHTTP("tcp", masterIp+util.MASTER_PORT)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return err
+	}
+	var bestIp string
+	_, err = util.TimeoutRPC(MasterClient.Go("Master.FindBest", "", &bestIp, nil), util.TIMEOUT_S)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return err
+	}
+	*reply = bestIp
+	var tableip map[string]string
+	// tableip = make(map[string]string)
+	_, err = util.TimeoutRPC(MasterClient.Go("Master.AllTableIp", "", &tableip, nil), util.TIMEOUT_S)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return err
+	}
+
+	// Find all the tables in this region server
+	var tables []string
+	var targetIP string
+	if region.serverIP != "" {
+		// 说明是backup
+		targetIP = region.serverIP
+		region.serverIP = ""
+	} else {
+		targetIP = region.hostIP
+	}
+	for table, ip := range tableip {
+		if ip == targetIP {
+			tables = append(tables, table)
+		}
+	}
+
+	for i := 0; i < len(tables); i++ {
+		args := util.MoveStruct{
+			Table:  tables[i],
+			Region: bestIp,
+		}
+		var tmp string
+		_, err = util.TimeoutRPC(MasterClient.Go("Master.Move", args, &tmp, nil), util.TIMEOUT_S)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return err
+		}
+	}
+	return nil
+}
 
 // Region 从ftp服务器上下载文件到本地
 // 要么直接指定savefileName 要么就是regionIP+尾缀
