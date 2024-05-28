@@ -38,6 +38,7 @@ const (
 type MoveStruct struct {
 	Table  string
 	Region string
+	Source string
 }
 
 var Region_IPs []string
@@ -118,7 +119,7 @@ func CleanDir(localDir string) {
 func AddToSliceIndex(ptr *[]string, newString string) {
 	// 如果指针为nil，创建一个新的切片
 	if ptr == nil {
-		*ptr= make([]string, 0)
+		*ptr = make([]string, 0)
 	}
 
 	// 添加新的字符串到切片中
