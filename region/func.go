@@ -381,7 +381,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 
 // 写一个转存函数，将region的data.db中的数据转存到best ip pair中？？
 // 在reply中写转存到哪个ip中了
-func (region *Region) TransferToBestPair(placeholder string, reply *string) error {
+func (region *Region) TransferToBestPair(tableip map[string]string, reply *string) error {
 	var masterIp string
 	if util.Local {
 		masterIp = util.MASTER_IP_LOCAL
@@ -401,13 +401,14 @@ func (region *Region) TransferToBestPair(placeholder string, reply *string) erro
 	}
 	fmt.Println("Best server is: " + bestIp)
 	*reply = bestIp
-	var tableip map[string]string
+	// var tableip map[string]string
 	// tableip = make(map[string]string)
-	_, err = util.TimeoutRPC(MasterClient.Go("Master.AllTableIp", "", &tableip, nil), util.TIMEOUT_S)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return err
-	}
+	// _, err = util.TimeoutRPC(MasterClient.Go("Master.AllTableIp", "", &tableip, nil), util.TIMEOUT_S)
+	// if err != nil {
+	// 	fmt.Println("Error:", err)
+	// 	return err
+	// }
+	fmt.Println(tableip)
 
 	// Find all the tables in this region server
 	var tables []string
@@ -419,6 +420,7 @@ func (region *Region) TransferToBestPair(placeholder string, reply *string) erro
 	} else {
 		targetIP = region.hostIP
 	}
+	fmt.Println(tableip)
 	for table, ip := range tableip {
 		if ip == targetIP {
 			tables = append(tables, table)

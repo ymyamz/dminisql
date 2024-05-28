@@ -414,21 +414,22 @@ func (master *Master) Complex_query(input string, reply *string) error {
 func (master *Master) FindBest(placeholder string, best *string) error {
 	min := math.MaxInt
 	*best = ""
-	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 	for ip, pTables := range master.Owntablelist {
 		if len(*pTables) < min && master.BusyOperationNum[ip] < util.BUSY_THRESHOLD {
 			min, *best = len(*pTables), ip
-			fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-			fmt.Println(*best)
 		}
+	}
+	if *best == "" {
+		*best = master.RegionIPList[0]
 	}
 	return nil
 }
 
 // 将table移到region中
-func (master *Master) Move(args util.MoveStruct, re *string) {
+func (master *Master) Move(args util.MoveStruct, re *string) error {
 	table := args.Table
 	region := args.Region
+	fmt.Println("HHHHHHHHHHHHHHHHHHHHHHHHHHH")
 	fmt.Println("master move.called")
 	oldip := master.TableIP[table]
 	rpcOldRegion := master.RegionClients[oldip]
@@ -483,6 +484,7 @@ func (master *Master) Move(args util.MoveStruct, re *string) {
 		fmt.Println("RESULT>>> failed ", call3.Error)
 	}
 	master.TableIP[table] = region
+	return nil
 }
 
 func (master *Master) TableCreateIn(input string, best string) error {

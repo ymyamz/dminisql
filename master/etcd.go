@@ -91,7 +91,7 @@ func (master *Master) addRegion(region_ip string) {
 		master.BusyOperationNum[region_ip] = 0
 		master.RegionIPList = append(master.RegionIPList, region_ip)
 		master.Owntablelist[region_ip] = &[]string{}
-		
+
 		master.Available = ""
 		//拨号通知server backup，删除server和backup内的data.db数据
 		master.Backup[region_ip] = back_ip
@@ -100,13 +100,14 @@ func (master *Master) addRegion(region_ip string) {
 	}
 
 }
-//给server_ip分配backup_ip作为backup，并且把backup的client加入regionclients
+
+// 给server_ip分配backup_ip作为backup，并且把backup的client加入regionclients
 func (master *Master) assignBackup(region_ip string, back_ip string) {
 
-	client:=master.RegionClients[region_ip]
+	client := master.RegionClients[region_ip]
 
 	var suc bool
-	err := client.Call("Region.AssignBackup", master.Backup[region_ip], &suc)  
+	err := client.Call("Region.AssignBackup", master.Backup[region_ip], &suc)
 	if err != nil {
 		fmt.Println("Region.AssignBackup err ", err)
 	}
@@ -117,7 +118,7 @@ func (master *Master) assignBackup(region_ip string, back_ip string) {
 		fmt.Println("master error >>> region rpc "+back_ip+" dial error:", er)
 		return
 	}
-	master.RegionClients[back_ip]=client_back
+	master.RegionClients[back_ip] = client_back
 }
 
 func (master *Master) watch() {
@@ -168,7 +169,8 @@ func (master *Master) removeOwnTables(ip string) {
 	}
 	delete(master.Owntablelist, ip)
 }
-//如果server挂了
+
+// 如果server挂了
 func (master *Master) deleteserver(IP string) {
 	//如果有available，启动backup为server;否则把backup中内容都转存到某个ip中。
 	if master.Available != "" {
@@ -204,38 +206,45 @@ func (master *Master) deleteserver(IP string) {
 		master.Backup[new_server] = master.Available
 		master.Available = ""
 		//拨号通知server他的backup
-		master.assignBackup(new_server,master.Backup[new_server] )
-		
+		master.assignBackup(new_server, master.Backup[new_server])
+
 		fmt.Println("server " + IP + " down, " + new_server + "change to server with backup is " + master.Backup[new_server])
 		//把backup存到client
 
 	} else {
 		// 把server-backup中内容都转存到best pair中
 		// backup 变成available
-		backup_ip:=master.Backup[IP]
-		client := master.RegionClients[backup_ip]
-		
+		backup_ip := master.Backup[IP]
+		tableIP := master.TableIP
+		// client := master.RegionClients[backup_ip]
+
 		//保存table名
-		table_name:=*master.Owntablelist[IP]
-		
+		table_name := *master.Owntablelist[IP]
+
 		//从master中删除server和backup的信息
 		master.DeleteRegionInfo(backup_ip, false)
 		master.DeleteRegionInfo(IP, true)
 
-		var accept_ip string
-		_, err := util.TimeoutRPC(client.Go("Region.TransferToBestPair", "", &accept_ip, nil), util.TIMEOUT_M)
+		client, err := rpc.DialHTTP("tcp", "localhost:"+backup_ip)
 		if err != nil {
-			fmt.Println("server "+IP+" TransferToBestPair return err ", err)
+			fmt.Println("server "+backup_ip+" build rpc connection return err ", err)
 		}
-		fmt.Println(" server " + IP + "'s content transfer to " +  accept_ip)
+		master.RegionClients[backup_ip] = client
+
+		var accept_ip string
+		_, err = util.TimeoutRPC(client.Go("Region.TransferToBestPair", tableIP, &accept_ip, nil), util.TIMEOUT_M)
+		if err != nil {
+			fmt.Println("server "+backup_ip+" TransferToBestPair return err ", err)
+		}
+		fmt.Println(" server " + IP + "'s content transfer to " + accept_ip)
 
 		//table都转存到table_accept_ip中
 		//遍历table_name，类型是[]string
-		
+
 		for _, table := range table_name {
 			master.TableIP[table] = accept_ip
 		}
-		*master.Owntablelist[accept_ip]=append(*master.Owntablelist[accept_ip],table_name...)
+		*master.Owntablelist[accept_ip] = append(*master.Owntablelist[accept_ip], table_name...)
 
 		var res string
 		//删除backup中的所有信息
@@ -248,7 +257,8 @@ func (master *Master) deleteserver(IP string) {
 
 	}
 }
-//如果backup挂了
+
+// 如果backup挂了
 func (master *Master) deletebackup(IP string) {
 	//查询backup中是哪个server的值是IP
 	server := ""
@@ -266,35 +276,51 @@ func (master *Master) deletebackup(IP string) {
 	if master.Available != "" {
 		//把avaiable设为backup
 		//查询backup中是哪个server的值是IP
-		
+
 		new_backup := master.Available
 		master.Available = ""
 		master.Backup[server] = new_backup
 		//拨号通知server他的backup
 		master.assignBackup(server, new_backup)
-		
+
 		fmt.Println("server " + server + " 's backup " + IP + " change to " + master.Backup[server])
 		//从master.Backup中删除
 		delete(master.RegionClients, IP)
 
 	} else {
 		//把server中内容都转存到某个server pair中,server转为available
-		
+
 		//转存到accept_ip中
-		client := master.RegionClients[server]
+		tableIP := master.TableIP
+		// client := master.RegionClients[backup_ip]
+
+		//保存table名
+		table_name := *master.Owntablelist[server]
+
+		//从master中删除server和backup的信息
+		master.DeleteRegionInfo(IP, false)
+		master.DeleteRegionInfo(server, true)
+
+		client, err := rpc.DialHTTP("tcp", "localhost:"+server)
+		if err != nil {
+			fmt.Println("server "+server+" build rpc connection return err ", err)
+		}
+		master.RegionClients[server] = client
+
 		var accept_ip string
-		err := client.Call("Region.TransferToBestPair", "", &accept_ip)
+		// fmt.Println("TTTTTTTTTTTTTTTTTTTTTTTTTTT")
+		// fmt.Println(tableIP)
+		err = client.Call("Region.TransferToBestPair", tableIP, &accept_ip)
 		if err != nil {
 			fmt.Println("server "+server+" TransferToBestPair return err ", err)
 		}
-		fmt.Println(" server " + server + "'s content transfer to " +  accept_ip)
+		fmt.Println(" server " + server + "'s content transfer to " + accept_ip)
 
-		//table都转存到table_accept_ip中
-		for table, ip := range master.TableIP {
-			if ip == server {
-				master.TableIP[table] =  accept_ip
-			}
+		for _, table := range table_name {
+			master.TableIP[table] = accept_ip
 		}
+		*master.Owntablelist[accept_ip] = append(*master.Owntablelist[accept_ip], table_name...)
+
 		var res string
 		//删除server中的所有信息
 		_, err = util.TimeoutRPC(client.Go("Region.ClearAllData", "", &res, nil), util.TIMEOUT_M)
@@ -303,10 +329,6 @@ func (master *Master) deletebackup(IP string) {
 		}
 
 		master.Available = server
-
-		//从master中删除server和backup的信息
-		master.DeleteRegionInfo(IP, false)
-		master.DeleteRegionInfo(server, true)
 
 	}
 
