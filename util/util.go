@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	Local     = true
 	TIMEOUT_S = 1000
 	TIMEOUT_M = 2000
 	TIMEOUT_L = 10000

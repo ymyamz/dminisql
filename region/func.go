@@ -183,8 +183,24 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 	return err
 }
 
-//写一个转存函数，将region的data.db中的数据转存到best ip pair中？？
-//TODO
+// 写一个转存函数，将region的data.db中的数据转存到best ip pair中？？
+// TODO
+func (region *Region) TransferToBestPair() error {
+	var masterIp string
+	if util.Local {
+		masterIp = util.MASTER_IP_LOCAL
+	} else {
+		masterIp = util.MASTER_IP
+	}
+	MasterClient, err := rpc.DialHTTP("tcp", masterIp+util.MASTER_PORT)
+	var res []string
+	bestIp := MasterClient.Go("Master.FindBest", "", &res, nil)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return err
+	}
+	return nil
+}
 
 // Region 从ftp服务器上下载文件到本地
 // 要么直接指定savefileName 要么就是regionIP+尾缀
