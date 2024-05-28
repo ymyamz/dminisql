@@ -104,10 +104,9 @@ func LoadFromFile(filename string) (*SerializableMaster, error) {
 	return &serializableMaster, nil
 }
 
-
 func (master *Master) Init(mode string) {
 	// Attempt to load from file
-	
+
 	serializableMaster, err := LoadFromFile("master.gob")
 	master.TableCnt = make(map[string]int)
 	master.RegionClients = make(map[string]*rpc.Client)
@@ -336,22 +335,25 @@ func (master *Master) AllTableIp(placeholder string, reply *map[string]string) e
 	return nil
 }
 
-
-func (master *Master)ShowNowInfo(input string, reply *string) error {  
-    fmt.Println("master nowinfo called") 
-	res:=""
+func (master *Master) ShowNowInfo(input string, reply *string) error {
+	fmt.Println("master nowinfo called")
+	res := ""
 	//打印map[string]*[]string类型变量master.Owntablelist输出到
 	for k, v := range master.Owntablelist {
-		res+=fmt.Sprintf("key: %s, value: %v\n", k, *v)  
+		res += fmt.Sprintf("key: %s, value: %v\n", k, *v)
 	}
-      
-    // 整理Master结构体的所有变量到res中  
-    res += fmt.Sprintf("TableIP: %v\nBackup: %v\nAvailable: %s\nRegionIPList: %v\n",  
-        master.TableIP, master.Backup, master.Available, master.RegionIPList)  
-  
-    // 存储到reply中  
-    *reply = res  
-  
-    return nil  
-}  
 
+	// 整理Master结构体的所有变量到res中
+	res += fmt.Sprintf("TableIP: %v\nBackup: %v\nAvailable: %s\nRegionIPList: %v\nBusyOperationNum: %v\n",
+		master.TableIP, master.Backup, master.Available, master.RegionIPList, master.BusyOperationNum)
+
+	// 存储到reply中
+	*reply = res
+
+	return nil
+}
+
+func (master *Master) IncrementBusyNum(ip string, reply *string) error {
+	master.BusyOperationNum[ip] += 1
+	return nil
+}

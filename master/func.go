@@ -16,7 +16,7 @@ func (m *Master) CallTest(arg string, reply *string) error {
 // 直接查看owntablelsit查询所有region的table，以表格形式返回所有table以及其所属regionip
 func (m *Master) TableShow(arg string, reply *string) error {
 	fmt.Println("master tableshow.called")
-	m.check_and_reset_Regions()
+	// m.check_and_reset_Regions()
 	var res string
 	res = "|" + fmt.Sprintf(" %-15s |", "name") + fmt.Sprintf(" %-15s |", "region_ip") + "\n"
 	res += "|-----------------|-----------------|\n"
@@ -96,7 +96,7 @@ func (master *Master) QueryReigon(input string, reply *string) error {
 	// TODO Change the ip
 	rpcRegion := master.RegionClients["localhost"]
 	master.BusyOperationNum["localhost"] += 1
-	master.check_and_reset_Regions()
+	// master.check_and_reset_Regions()
 	var res string
 
 	call, err := util.TimeoutRPC(rpcRegion.Go("Region.Query", input, &res, nil), util.TIMEOUT_M)
@@ -179,6 +179,7 @@ func (master *Master) check_and_reset_Regions() error {
 	if all_busy {
 		for _, region_ip := range master.RegionIPList {
 			master.BusyOperationNum[region_ip] = 0
+			master.BusyOperationNum[master.Backup[region_ip]] = 0
 		}
 	}
 	return nil
@@ -415,13 +416,25 @@ func (master *Master) Complex_query(input string, reply *string) error {
 func (master *Master) FindBest(obmit string, best *string) error {
 	min := math.MaxInt
 	*best = ""
+	var busy bool
+	busy = true
 	for ip, pTables := range master.Owntablelist {
 		if len(*pTables) < min && master.BusyOperationNum[ip] < util.BUSY_THRESHOLD && obmit != ip {
 			min, *best = len(*pTables), ip
 		}
+		if master.BusyOperationNum[ip] < util.BUSY_THRESHOLD {
+			busy = false
+		}
+	}
+	if busy {
+		master.check_and_reset_Regions()
 	}
 	if *best == "" {
-		*best = master.RegionIPList[0]
+		if master.RegionIPList[0] == obmit {
+			*best = master.RegionIPList[1]
+		} else {
+			*best = master.RegionIPList[0]
+		}
 	}
 	fmt.Println("--------------------------------------------------")
 	fmt.Println("Found Best")
@@ -469,7 +482,7 @@ func (master *Master) Move(args util.MoveStruct, re *string) error {
 	var reply string
 	input = "drop table " + table
 	// master.TableDrop(input, &reply)
-	_, err = util.TimeoutRPC(rpcOldRegion.Go("Region.Execute", input, &reply, nil), util.TIMEOUT_M)
+	_, err = util.TimeoutRPC(rpcOldRegion.Go("Region.Exe", input, &reply, nil), util.TIMEOUT_M)
 	delete(master.TableIP, table)
 	if err != nil {
 		fmt.Println("region return err ", err)
@@ -503,15 +516,15 @@ func (master *Master) Move(args util.MoveStruct, re *string) error {
 
 func (master *Master) MoveHalf(args util.MoveStruct, re *string) error {
 	fmt.Println("-----------------------------------------")
-	region := args.Region
 	source := args.Source
+	backupSource := master.Backup[source]
 
 	tables := *master.Owntablelist[source]
-	if len(tables) >= 2 {
+	if len(tables) <= 2 {
 		// 如果只有两个表，直接返回，不需要挪到其他region上
 		return nil
 	}
-	fmt.Println("Move half of " + source + " to " + region)
+	fmt.Println("Move half of " + source)
 
 	//迁移
 	var bestIp string
@@ -523,15 +536,36 @@ func (master *Master) MoveHalf(args util.MoveStruct, re *string) error {
 			Source: source,
 		}
 		var tmp string
+		fmt.Println("MoveHalf from" + source + " TO " + bestIp)
 		master.Move(args, &tmp)
-	}
-	for i := 0; i < len(tables)/2; i++ {
-		master.TableIP[tables[i]] = region
-		*master.Owntablelist[region] = append(*master.Owntablelist[region], tables[i])
+		args = util.MoveStruct{
+			Table:  tables[i],
+			Region: master.Backup[bestIp],
+			Source: backupSource,
+		}
+		fmt.Println("MoveHalf from" + backupSource + " TO " + master.Backup[bestIp])
+		master.Move(args, &tmp)
+		master.TableIP[tables[i]] = bestIp
+		*master.Owntablelist[bestIp] = append(*master.Owntablelist[bestIp], tables[i])
 		util.DeleteFromSlice(master.Owntablelist[source], tables[i])
 	}
 
 	fmt.Println("-----------------------------------------")
+	return nil
+}
+
+func (master *Master) LoadBalance(placeholder string, re *string) error {
+	for i := range master.RegionIPList {
+		if master.BusyOperationNum[master.RegionIPList[i]] > util.BUSY_THRESHOLD {
+			args := util.MoveStruct{
+				Table:  "",
+				Region: "",
+				Source: master.RegionIPList[i],
+			}
+			var tmp string
+			master.MoveHalf(args, &tmp)
+		}
+	}
 	return nil
 }
 
@@ -556,7 +590,7 @@ func (master *Master) TableCreateIn(input string, best string) error {
 
 		var res string
 		//创建表
-		call, err := util.TimeoutRPC(rpcRegion.Go("Region.Execute", input, &res, nil), util.TIMEOUT_M)
+		call, err := util.TimeoutRPC(rpcRegion.Go("Region.Exe", input, &res, nil), util.TIMEOUT_M)
 		if err != nil {
 			fmt.Println("SYSTEM HINT>>> timeout, region down!")
 		}
@@ -564,13 +598,6 @@ func (master *Master) TableCreateIn(input string, best string) error {
 			fmt.Println("RESULT>>> failed ", call.Error)
 		} else {
 			fmt.Println("RESULT>>> res: \n", res)
-			//err := rpcRegion.Go("Region.Execute", input, &res, nil)
-			//if err != nil {
-			//	fmt.Println("region return err ", err)
-			//}
-			master.TableIP[table_name] = best
-			util.AddToSlice(master.Owntablelist[best], table_name)
-			//*reply = "table created in region " + best
 		}
 	}
 	//fmt.Println("region return ", *reply)
