@@ -6,7 +6,6 @@ import (
 	. "distribute-sql/region"
 	"distribute-sql/util"
 	"fmt"
-	"net/rpc"
 	"os"
 )
 
@@ -52,16 +51,16 @@ func main() {
 		default:
 			fmt.Println("Unknown mode:", mode)
 			// Example usage
-			err := util.TransferFile("localhost", "localhost"+util.FILE_PORT, "go.sum")
+			err := util.TransferFile("localhost", "127.0.0.1"+util.FILE_PORT, "./data/8001.db")
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
-			client, err := rpc.DialHTTP("tcp", "localhost"+util.REGION_PORT)
-			var res []string
-			client.Go("Region.SaveFileFromFTP", "example.txt", &res, nil)
-			if err != nil {
-				fmt.Println("Error:", err)
-			}
+			// client, err := rpc.DialHTTP("tcp", "localhost"+util.REGION_PORT)
+			// var res []string
+			// client.Go("Region.SaveFileFromFTP", "example.txt", &res, nil)
+			// if err != nil {
+			// 	fmt.Println("Error:", err)
+			// }
 		}
 	} else {
 		fmt.Println("No mode specified")
