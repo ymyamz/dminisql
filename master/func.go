@@ -429,7 +429,6 @@ func (master *Master) FindBest(placeholder string, best *string) error {
 func (master *Master) Move(args util.MoveStruct, re *string) error {
 	table := args.Table
 	region := args.Region
-	fmt.Println("HHHHHHHHHHHHHHHHHHHHHHHHHHH")
 	fmt.Println("master move.called")
 	oldip := master.TableIP[table]
 	rpcOldRegion := master.RegionClients[oldip]

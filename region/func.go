@@ -408,7 +408,6 @@ func (region *Region) TransferToBestPair(tableip map[string]string, reply *strin
 	// 	fmt.Println("Error:", err)
 	// 	return err
 	// }
-	fmt.Println(tableip)
 
 	// Find all the tables in this region server
 	var tables []string
@@ -420,18 +419,21 @@ func (region *Region) TransferToBestPair(tableip map[string]string, reply *strin
 	} else {
 		targetIP = region.hostIP
 	}
-	fmt.Println(tableip)
+	fmt.Println(targetIP)
 	for table, ip := range tableip {
 		if ip == targetIP {
 			tables = append(tables, table)
 		}
 	}
+	fmt.Println(tables)
+	fmt.Println(tableip)
 
 	for i := 0; i < len(tables); i++ {
 		args := util.MoveStruct{
 			Table:  tables[i],
 			Region: bestIp,
 		}
+		fmt.Println(args)
 		var tmp string
 		_, err = util.TimeoutRPC(MasterClient.Go("Master.Move", args, &tmp, nil), util.TIMEOUT_S)
 		if err != nil {
