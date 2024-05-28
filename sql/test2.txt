@@ -1,4 +1,4 @@
-CREATE TABLE employee (id INTEGER PRIMARY KEY, name TEXT, age INTEGER);  
+CREATE TABLE employee1w (id INTEGER PRIMARY KEY, name TEXT, age INTEGER);  
 CREATE TABLE employee_department (id INTEGER PRIMARY KEY, employee_id INTEGER, department TEXT);
 
 INSERT INTO employee (name, age) VALUES ('John', 35);  

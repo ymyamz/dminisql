@@ -104,49 +104,6 @@ func LoadFromFile(filename string) (*SerializableMaster, error) {
 	return &serializableMaster, nil
 }
 
-// func (master *Master) Init(mode string) {
-// 	//便于本地测试
-// 	if mode == "d" {
-// 		master.RegionIPList = util.Region_IPs
-// 	} else {
-// 		master.RegionIPList = util.Region_IPs_LOCAL
-// 	}
-// 	master.RegionCount = len(master.RegionIPList)
-// 	master.BusyOperationNum = make(map[string]int)
-// 	// etcd client init
-// 	// wait for update
-
-// 	//code阶段，先对region进行初始化，后续再进行优化
-// 	//遍历每一个region_ips，建立rpc连接
-// 	master.RegionClients = make(map[string]*rpc.Client)
-// 	for _, region_ip := range master.RegionIPList {
-// 		client, err := rpc.DialHTTP("tcp", region_ip+util.REGION_PORT)
-// 		if err != nil {
-// 			fmt.Println("master error >>> region rpc dial error:", err)
-// 			return
-// 		}
-// 		fmt.Println("master init >>> region rpc dial success:", region_ip)
-// 		master.RegionClients[region_ip] = client
-// 		master.BusyOperationNum[region_ip] = 0
-// 	}
-
-// 	//初始化ip含有的table列表
-// 	master.Owntablelist = make(map[string]*[]string)
-// 	for _, region_ip := range master.RegionIPList {
-// 		master.Owntablelist[region_ip] = &[]string{}
-// 	}
-
-//	//初始化索引
-//	master.IndexInfo = make(map[string]string)
-//	master.TableIndex = make(map[string]*[]string)
-// 	//初始化该table所在region的ip
-
-// 	master.TableIP = make(map[string]string)
-// 	master.InitTableIP()
-
-// 	master.Backup = make(map[string]string)
-// 	master.BusyOperationNum = make(map[string]int)
-// }
 
 func (master *Master) Init(mode string) {
 	// Attempt to load from file
@@ -156,9 +113,7 @@ func (master *Master) Init(mode string) {
 	master.RegionClients = make(map[string]*rpc.Client)
 	master.Backup = make(map[string]string)
 	master.Available = ""
-	//if err == nil {
-	//test init
-	if false {
+	if err == nil {
 		// Successfully loaded from file
 		master.fromSerializable(serializableMaster)
 		fmt.Println("Master struct loaded from file")
