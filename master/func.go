@@ -439,7 +439,6 @@ func (master *Master) Move(args util.MoveStruct, re *string) error {
 	oldip := master.TableIP[table]
 	if target != "" {
 		oldip = target
-		fmt.Println("?????????????????????????")
 	}
 	rpcOldRegion := master.RegionClients[oldip]
 	//从旧region中获取数据
@@ -453,7 +452,6 @@ func (master *Master) Move(args util.MoveStruct, re *string) error {
 		fmt.Println("RESULT>>> failed ", call.Error)
 	}
 	fmt.Println(res)
-	fmt.Println("-------------------------------------------------------")
 
 	//获取create表的sql
 	input = "select sql from sqlite_master where tbl_name = "
@@ -466,7 +464,6 @@ func (master *Master) Move(args util.MoveStruct, re *string) error {
 	if call2.Error != nil {
 		fmt.Println("RESULT>>> failed ", call2.Error)
 	}
-	fmt.Println("-------------------------------------------------------")
 
 	//从旧region中删除表
 	var reply string
@@ -501,6 +498,40 @@ func (master *Master) Move(args util.MoveStruct, re *string) error {
 		fmt.Println("RESULT>>> failed ", call3.Error)
 	}
 	master.TableIP[table] = region
+	return nil
+}
+
+func (master *Master) MoveHalf(args util.MoveStruct, re *string) error {
+	fmt.Println("-----------------------------------------")
+	region := args.Region
+	source := args.Source
+
+	tables := *master.Owntablelist[source]
+	if len(tables) >= 2 {
+		// 如果只有两个表，直接返回，不需要挪到其他region上
+		return nil
+	}
+	fmt.Println("Move half of " + source + " to " + region)
+
+	//迁移
+	var bestIp string
+	for i := 0; i < len(tables)/2; i++ {
+		master.FindBest(source, &bestIp)
+		args := util.MoveStruct{
+			Table:  tables[i],
+			Region: bestIp,
+			Source: source,
+		}
+		var tmp string
+		master.Move(args, &tmp)
+	}
+	for i := 0; i < len(tables)/2; i++ {
+		master.TableIP[tables[i]] = region
+		*master.Owntablelist[region] = append(*master.Owntablelist[region], tables[i])
+		util.DeleteFromSlice(master.Owntablelist[source], tables[i])
+	}
+
+	fmt.Println("-----------------------------------------")
 	return nil
 }
 
@@ -546,19 +577,18 @@ func (master *Master) TableCreateIn(input string, best string) error {
 	return nil
 }
 
-func (master *Master) NowInfo(input string, reply *string) error {  
-    fmt.Println("master nowinfo called")  
-      
-    // 整理Master结构体的所有变量到res中  
-    res := fmt.Sprintf("Owntablelist: %v\nTableIP: %v\nBackup: %v\nAvailable: %s\nRegionIPList: %v\n",  
-        master.Owntablelist, master.TableIP, master.Backup, master.Available, master.RegionIPList)  
-  
-    // 存储到reply中  
-    *reply = res  
-  
-    return nil  
-}  
+func (master *Master) NowInfo(input string, reply *string) error {
+	fmt.Println("master nowinfo called")
 
+	// 整理Master结构体的所有变量到res中
+	res := fmt.Sprintf("Owntablelist: %v\nTableIP: %v\nBackup: %v\nAvailable: %s\nRegionIPList: %v\n",
+		master.Owntablelist, master.TableIP, master.Backup, master.Available, master.RegionIPList)
+
+	// 存储到reply中
+	*reply = res
+
+	return nil
+}
 
 func (master *Master) Complex_query_master(input string, reply *string) error {
 	fmt.Println("master Complex_query_master.called")
@@ -632,7 +662,6 @@ func (master *Master) Copy(table string, ip string) error {
 		fmt.Println("RESULT>>> failed ", call2.Error)
 	}
 
-
 	//在master本地的数据库中建表
 	for _, line := range res2 {
 		fmt.Println("line:", line)
@@ -646,4 +675,3 @@ func (master *Master) Copy(table string, ip string) error {
 	fmt.Println("copy success")
 	return nil
 }
-
