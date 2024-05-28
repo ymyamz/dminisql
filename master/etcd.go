@@ -181,7 +181,7 @@ func (master *Master) deleteserver(IP string) {
 	if master.Available != "" {
 		//从master.RegionIPList中删除
 		util.DeleteFromSlice(&master.RegionIPList, IP)
-		
+
 		//删除client
 		client, ok := master.RegionClients[IP]
 		if ok {
@@ -216,9 +216,8 @@ func (master *Master) deleteserver(IP string) {
 
 		master.RegionIPList = append(master.RegionIPList, new_server)
 		fmt.Println("server " + IP + " down, " + new_server + "change to server with backup is " + master.Backup[new_server])
-		
-		//把backup存到client??
 
+		//把backup存到client??
 
 	} else {
 		util.DeleteFromSlice(&master.RegionIPList, IP)
@@ -227,14 +226,23 @@ func (master *Master) deleteserver(IP string) {
 		backup_ip := master.Backup[IP]
 
 		client := master.RegionClients[backup_ip]
+		client, err := rpc.DialHTTP("tcp", "localhost:"+backup_ip)
+		master.RegionClients[backup_ip] = client
+		if err != nil {
+			fmt.Println(err)
+		}
+		client = master.RegionClients[backup_ip]
 		fmt.Println("IP: " + IP + "BACKUP: " + backup_ip)
+		fmt.Println(client)
 
 		//保存table名
 		table_name := *master.Owntablelist[IP]
 
 		var accept_ip string
 		master.FindBest(IP, &accept_ip)
-		_, err := util.TimeoutRPC(client.Go("Region.TransferToBestPair", accept_ip, &accept_ip, nil), util.TIMEOUT_M)
+		fmt.Println("PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP")
+		fmt.Println(client)
+		_, err = util.TimeoutRPC(client.Go("Region.TransferToBestPair", accept_ip, &accept_ip, nil), util.TIMEOUT_M)
 		if err != nil {
 			fmt.Println("server "+backup_ip+" TransferToBestPair return err ", err)
 		}
