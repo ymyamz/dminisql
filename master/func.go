@@ -429,6 +429,9 @@ func (master *Master) FindBest(obmit string, best *string) error {
 	if busy {
 		master.check_and_reset_Regions()
 	}
+	fmt.Println("regionlist is ",master.RegionIPList)
+	fmt.Println("obmit is ", obmit)
+
 	if *best == "" {
 		if master.RegionIPList[0] == obmit {
 			*best = master.RegionIPList[1]

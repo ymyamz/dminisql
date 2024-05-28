@@ -31,6 +31,7 @@ type Master struct {
 	TableCnt         map[string]int       // table->count 存储本地数据库中table应该copy了多少次
 }
 
+
 // SerializableMaster is used for selective serialization
 type SerializableMaster struct {
 	RegionCount      int
@@ -284,6 +285,7 @@ func (master *Master) InitTableIP() {
 
 // 询问master某个table在哪个ip的region中
 func (master *Master) GetTableIP(table string, reply *string) error {
+	fmt.Println("master gettableip called", table)
 	if _, ok := master.TableIP[table]; !ok {
 		*reply = ""
 	}

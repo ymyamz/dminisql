@@ -180,6 +180,7 @@ func (client *Client) parse_sql_statement(input string) {
 	case "select":
 		var tables []string
 		var size int
+		size=0
 		var ip string
 		for i := 0; i < len(items); i++ {
 			table_name := items[i]
@@ -187,7 +188,7 @@ func (client *Client) parse_sql_statement(input string) {
 			if found != "" { //存在该table
 				tables = append(tables, table_name)
 				ip = found
-				size++
+				size+=1
 			}
 		}
 		if size == 1 {
