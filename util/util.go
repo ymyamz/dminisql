@@ -9,6 +9,8 @@ import (
 
 	"strings"
 
+	"path/filepath"
+
 	"github.com/jlaffaye/ftp"
 )
 
@@ -149,13 +151,15 @@ func TransferFile(sourceIP string, targetIP string, fileName string) error {
 
 	// Open the source file
 	file, err := os.Open(fileName)
+	fmt.Println(fileName)
+	fmt.Println(targetIP)
 	if err != nil {
 		return fmt.Errorf("error opening source file: %v", err)
 	}
 	defer file.Close()
 
 	// Transfer the file
-	err = conn.Stor(fileName, file)
+	err = conn.Stor(filepath.Base(fileName), file)
 	if err != nil {
 		return fmt.Errorf("error transferring file: %v", err)
 	}

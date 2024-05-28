@@ -18,7 +18,7 @@ import (
 func (region *Region) TableName(input string, reply *[]string) error {
 	fmt.Println("Return TABLENAME in region")
 	rows, err := region.db.Query("SELECT name FROM sqlite_master WHERE type='table'")
-	
+
 	if err != nil {
 		fmt.Printf("Query failed: %v\n", err)
 		*reply = append(*reply, "failedinquery")
@@ -203,6 +203,7 @@ func (region *Region) Execute(input string, reply *string) error {
 		return nil
 	}
 	*reply = "Execute success"
+	fmt.Println("Execute success")
 
 	if region.backupIP != "" {
 		rpcBackupRegion, err := rpc.DialHTTP("tcp", "localhost:"+region.backupIP)
@@ -368,7 +369,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 
 		var res []string
 		args := SaveFileArgs{
-			FileName:     "./data/" + region.hostIP + ".db",
+			FileName:     region.hostIP + ".db",
 			SaveFileName: "",
 		}
 		// 通知backup从ftp获取data.db
@@ -441,7 +442,7 @@ func (region *Region) TransferToBestPair(placeholder string, reply *string) erro
 // Region 从ftp服务器上下载文件到本地
 // 要么直接指定savefileName 要么就是regionIP+尾缀
 func (region *Region) SaveFileFromFTP(args SaveFileArgs, reply *string) error {
-	
+
 	fileName := args.FileName
 	savefileName := args.SaveFileName
 	fmt.Println("SaveFileFromFTP called, save from ", args.FileName)
@@ -507,6 +508,6 @@ func (region *Region) SaveFileFromFTP(args SaveFileArgs, reply *string) error {
 	return nil
 }
 //把region本地的data.db删了
-func (region *Region)ClearAllData(input string, reply *string)error{
-
-}
+// func (region *Region)ClearAllData(input string, reply *string)error{
+	
+// }

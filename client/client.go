@@ -52,7 +52,7 @@ func (client *Client) Run() {
 		input = strings.ToLower(input)
 		input = strings.TrimSpace(input)
 		input = strings.ReplaceAll(input, "\\s+", " ")
-		
+
 		if input == "exit" {
 			call_func := "Master.SaveToFile"
 			client.connect_to_master(call_func, "master.gob")
@@ -90,9 +90,9 @@ func (client *Client) Run() {
 					fmt.Println("CLIENT ERROR>>> read file error:", err)
 					continue
 				}
-			} 
-		}else{
-		//如果是正常执行语句
+			}
+		} else {
+			//如果是正常执行语句
 			client.parse_sql_statement(input)
 		}
 	}
@@ -184,8 +184,10 @@ func (client *Client) parse_sql_statement(input string) {
 
 			//client.connect_to_region_test(ip, "Region.Get", input)
 
+		} else if size == 0 {
+			fmt.Println("table doesn't exist")
 		} else {
-			client.connect_to_master("Master.Join", input)
+			client.connect_to_master("Master.Complex_query", input)
 		}
 	//case "test":
 	//	input = "SELECT sql FROM sqlite_master WHERE tbl_name='user';"
@@ -205,7 +207,7 @@ func (client *Client) parse_sql_statement(input string) {
 				client.connect_to_region(region_ip, call_func, input)
 			}
 
-		}else{
+		} else {
 			fmt.Println("CLIENT ERROR>>> unknow sql statement:", input)
 		}
 

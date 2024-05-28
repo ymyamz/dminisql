@@ -152,7 +152,7 @@ func (master *Master) Init(mode string) {
 	master.Available = ""
 	//if err == nil {
 	//test init
-	if false  {
+	if false {
 		// Successfully loaded from file
 		master.fromSerializable(serializableMaster)
 		fmt.Println("Master struct loaded from file")
@@ -202,15 +202,17 @@ func (master *Master) Init(mode string) {
 			fmt.Println("master init >>> region rpc dial success:", region_ip)
 			master.RegionClients[region_ip] = client
 			master.BusyOperationNum[region_ip] = 0
-			
+
 			//通知server服务器它的backup服务器是谁,注意需要等待返回后才能下一步（不可是异步的，会冲突报错）
-			var res string
-			err = client.Call("Region.AssignBackup", master.Backup[region_ip], &res)  
+			var res bool
+			err = client.Call("Region.AssignBackup", master.Backup[region_ip], &res)
 			if err != nil {
 				fmt.Println("SYSTEM HINT>>> timeout, region down!")
 			}
 
 			//初始化backup服务器
+			fmt.Println("BKUP IP")
+			fmt.Println(master.Backup[region_ip])
 			bkclient, err := rpc.DialHTTP("tcp", "localhost:"+master.Backup[region_ip])
 			if err != nil {
 				fmt.Println("master error >>> bkup region rpc dial error:", err)

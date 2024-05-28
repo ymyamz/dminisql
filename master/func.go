@@ -59,12 +59,25 @@ func (master *Master) TableCreate(input string, reply *string) error {
 
 		var res string
 		//创建表
-		err := rpcRegion.Go("Region.Execute", input, &res, nil)
+
+		call, err := util.TimeoutRPC(rpcRegion.Go("Region.Execute", input, &res, nil), util.TIMEOUT_M)
+		*reply = res
 		if err != nil {
-			fmt.Println("region return err ", err)
+			fmt.Println("SYSTEM HINT>>> timeout, region down!")
 		}
-		master.TableIP[table_name] = best
-		util.AddToSlice(master.Owntablelist[best], table_name)
+		if call.Error != nil {
+			fmt.Println("RESULT>>> failed ", call.Error)
+		} else {
+			fmt.Println("RESULT>>> res: \n", res)
+
+			//err := rpcRegion.Go("Region.Execute", input, &res, nil)
+			//if err != nil {
+			//	fmt.Println("region return err ", err)
+			//}
+			master.TableIP[table_name] = best
+			util.AddToSlice(master.Owntablelist[best], table_name)
+			*reply = "table created on region " + best
+		}
 
 	}
 	fmt.Println("region return ", *reply)
@@ -102,12 +115,13 @@ func (master *Master) TableDrop(input string, reply *string) error {
 	items := strings.Split(input, " ")
 	table_name := items[2]
 	//table_name := extractTable(items[2])
+	fmt.Println("drop table " + table_name)
 
 	// 检查要删除的表是否存在
 	_, found := master.TableIP[table_name]
 	if !found {
 		*reply = "table doesn't exist"
-		fmt.Println("table doesn't exist", table_name)
+		fmt.Println("table doesn't exist" + table_name)
 	} else {
 		// 获取要删除表的服务器 IP 地址
 		ip := master.TableIP[table_name]
@@ -117,6 +131,7 @@ func (master *Master) TableDrop(input string, reply *string) error {
 
 		// 调用远程过程执行 SQL 命令
 		call, err := util.TimeoutRPC(rpcRegion.Go("Region.Execute", input, &res, nil), util.TIMEOUT_M)
+		*reply = res
 		if err != nil {
 			fmt.Println("region return err ", err)
 			return err
@@ -130,7 +145,12 @@ func (master *Master) TableDrop(input string, reply *string) error {
 
 		// 删除表，并更新数据结构
 		master.deleteTable(table_name, ip)
-		return nil
+	}
+
+	_, found = master.TableIP[table_name]
+	fmt.Println("table condition:", found)
+	if found {
+		fmt.Println(master.TableIP[table_name])
 	}
 
 	fmt.Println("region return ", *reply)
@@ -234,7 +254,7 @@ func (master *Master) IndexCreate(input string, reply *string) error {
 		//master.tableIndex[table_name] = index_name
 		util.AddToSliceIndex(master.TableIndex[table_name], index_name)
 		//fmt.Println("!!3")
-		*reply = "index created in region " + ip
+		*reply = "index created on region " + ip
 		fmt.Println("region return ", *reply)
 	} else {
 		*reply = "failed"
@@ -293,6 +313,7 @@ func (master *Master) IndexDrop(input string, reply *string) error {
 
 	// 调用远程过程执行 SQL 命令
 	call, err := util.TimeoutRPC(rpcRegion.Go("Region.Execute", input, &res, nil), util.TIMEOUT_M)
+	*reply = res
 	if err != nil {
 		fmt.Println("region return err ", err)
 		return err
@@ -305,7 +326,6 @@ func (master *Master) IndexDrop(input string, reply *string) error {
 	}
 
 	master.deleteIndex(index_name, table_name)
-	return nil
 
 	fmt.Println("region return ", *reply)
 	return nil
@@ -325,11 +345,11 @@ func (master *Master) IndexShow(arg string, reply *string) error {
 
 }
 
-func (master *Master) Join(input string, reply *string) error {
-	fmt.Println("master join.called")
+func (master *Master) Complex_query(input string, reply *string) error {
+	fmt.Println("master Complex_query.called")
 	items := strings.Split(input, " ")
 	var tables []string
-	var size, flag int
+	var size int
 	var ip []string
 	for i := 0; i < len(items); i++ {
 		name := items[i]
@@ -339,15 +359,15 @@ func (master *Master) Join(input string, reply *string) error {
 			ip = append(ip, found)
 			size++
 		}
-		if name == "join" {
-			flag = 1
-		}
+		//if name == "join" {
+		//	flag = 1
+		//}
 	}
-	if flag != 1 { //语句中没有join
-		*reply = "Unsupported queries"
-		fmt.Println("Unsupported queries")
-		return nil
-	}
+	//if flag != 1 { //语句中没有join
+	//	*reply = "Unsupported queries"
+	//	fmt.Println("Unsupported queries")
+	//	return nil
+	//}
 	//找到拥有最多所查找的表的region
 	var cnt = make(map[string]int)
 	var best string
@@ -379,13 +399,11 @@ func (master *Master) Join(input string, reply *string) error {
 	//}
 	if err != nil {
 		fmt.Println("SYSTEM HINT>>> timeout, master down!")
-	}
-	if call.Error != nil {
+	} else if call.Error != nil {
 		fmt.Println("RESULT>>> failed ", call.Error)
+	} else {
+		fmt.Println("RESULT>>>\n" + res)
 	}
-	//else {
-	//	fmt.Println("RESULT>>>\n" + res)
-	//}
 	*reply = res
 	//fmt.Println(input)
 	//fmt.Println(res)
@@ -465,15 +483,18 @@ func (master *Master) Move(args util.MoveStruct, re *string) {
 }
 
 func (master *Master) TableCreateIn(input string, best string) error {
-	fmt.Println("master tablecreate.called")
+	fmt.Println("master tablecreatein.called")
 	master.check_and_reset_Regions()
 	items := strings.Split(input, " ")
+	fmt.Println(items)
 	//table_name := items[2]
-	table_name := extractTable(items[2])
+	table_name := extractTable(items[3])
 	_, found := master.TableIP[table_name]
 	if found {
 		//*reply = "table already exists"
-		fmt.Println("table already exists", table_name)
+		fmt.Println("table already exists")
+		fmt.Println(found)
+		fmt.Println(master.TableIP[table_name])
 	} else {
 
 		rpcRegion := master.RegionClients[best]
@@ -482,13 +503,22 @@ func (master *Master) TableCreateIn(input string, best string) error {
 
 		var res string
 		//创建表
-		err := rpcRegion.Go("Region.Execute", input, &res, nil)
+		call, err := util.TimeoutRPC(rpcRegion.Go("Region.Execute", input, &res, nil), util.TIMEOUT_M)
 		if err != nil {
-			fmt.Println("region return err ", err)
+			fmt.Println("SYSTEM HINT>>> timeout, region down!")
 		}
-		master.TableIP[table_name] = best
-		util.AddToSlice(master.Owntablelist[best], table_name)
-		//*reply = "table created in region " + best
+		if call.Error != nil {
+			fmt.Println("RESULT>>> failed ", call.Error)
+		} else {
+			fmt.Println("RESULT>>> res: \n", res)
+			//err := rpcRegion.Go("Region.Execute", input, &res, nil)
+			//if err != nil {
+			//	fmt.Println("region return err ", err)
+			//}
+			master.TableIP[table_name] = best
+			util.AddToSlice(master.Owntablelist[best], table_name)
+			//*reply = "table created in region " + best
+		}
 	}
 	//fmt.Println("region return ", *reply)
 	return nil
