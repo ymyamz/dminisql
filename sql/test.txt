@@ -11,4 +11,4 @@ INSERT INTO user_address (user_id, address) VALUES (2, '456 Elm Street');
 INSERT INTO user_orders (user_id, product, amount) VALUES (1, 'Shoes', 2);  
 INSERT INTO user_orders (user_id, product, amount) VALUES (2, 'Shirt', 1);  
 
-select * from user_info cross join user_orders;
+select * from user_info cross join user_address;
