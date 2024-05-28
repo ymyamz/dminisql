@@ -440,12 +440,15 @@ func (region *Region) TransferToBestPair(bestIp string, reply *string) error {
 	}
 	fmt.Println("Best IP")
 	fmt.Println(bestIp)
+	fmt.Println(len(tables))
 
 	for i := 0; i < len(tables); i++ {
 		args := util.MoveStruct{
 			Table:  tables[i],
 			Region: bestIp,
+			Source: region.hostIP,
 		}
+		fmt.Println("ARGS")
 		fmt.Println(args)
 		var tmp string
 		_, err = util.TimeoutRPC(MasterClient.Go("Master.Move", args, &tmp, nil), util.TIMEOUT_S)

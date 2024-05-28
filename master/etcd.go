@@ -222,6 +222,7 @@ func (master *Master) deleteserver(IP string) {
 		backup_ip := master.Backup[IP]
 
 		client := master.RegionClients[backup_ip]
+		fmt.Println("IP: " + IP + "BACKUP: " + backup_ip)
 
 		//保存table名
 		table_name := *master.Owntablelist[IP]

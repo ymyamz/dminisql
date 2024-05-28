@@ -389,6 +389,7 @@ func (master *Master) Complex_query(input string, reply *string) error {
 			args := util.MoveStruct{
 				Table:  tables[i],
 				Region: best,
+				Source: "",
 			}
 			var tmp string
 			master.Move(args, &tmp)
@@ -399,10 +400,6 @@ func (master *Master) Complex_query(input string, reply *string) error {
 	rpcRegion := master.RegionClients[best]
 	var res string
 	call, err := util.TimeoutRPC(rpcRegion.Go("Region.Query", input, &res, nil), util.TIMEOUT_M)
-	//err := rpcRegion.Go("Region.Query", input, &res, nil)
-	//if err != nil {
-	//	fmt.Println("region return err ", err)
-	//}
 	if err != nil {
 		fmt.Println("SYSTEM HINT>>> timeout, master down!")
 	} else if call.Error != nil {
@@ -411,8 +408,6 @@ func (master *Master) Complex_query(input string, reply *string) error {
 		fmt.Println("RESULT>>>\n" + res)
 	}
 	*reply = res
-	//fmt.Println(input)
-	//fmt.Println(res)
 
 	return nil
 }
@@ -428,6 +423,10 @@ func (master *Master) FindBest(obmit string, best *string) error {
 	if *best == "" {
 		*best = master.RegionIPList[0]
 	}
+	fmt.Println("--------------------------------------------------")
+	fmt.Println("Found Best")
+	fmt.Println(*best)
+	fmt.Println("--------------------------------------------------")
 	return nil
 }
 
@@ -435,11 +434,14 @@ func (master *Master) FindBest(obmit string, best *string) error {
 func (master *Master) Move(args util.MoveStruct, re *string) error {
 	table := args.Table
 	region := args.Region
-	fmt.Println("HHHHHHHHHHHHHHHHHHHHHHHHHHH")
+	target := args.Source
 	fmt.Println("master move.called")
 	oldip := master.TableIP[table]
+	if target != "" {
+		oldip = target
+		fmt.Println("?????????????????????????")
+	}
 	rpcOldRegion := master.RegionClients[oldip]
-
 	//从旧region中获取数据
 	input := "select * from " + table
 	var res []string
@@ -451,6 +453,7 @@ func (master *Master) Move(args util.MoveStruct, re *string) error {
 		fmt.Println("RESULT>>> failed ", call.Error)
 	}
 	fmt.Println(res)
+	fmt.Println("-------------------------------------------------------")
 
 	//获取create表的sql
 	input = "select sql from sqlite_master where tbl_name = "
@@ -463,11 +466,18 @@ func (master *Master) Move(args util.MoveStruct, re *string) error {
 	if call2.Error != nil {
 		fmt.Println("RESULT>>> failed ", call2.Error)
 	}
+	fmt.Println("-------------------------------------------------------")
 
 	//从旧region中删除表
 	var reply string
 	input = "drop table " + table
-	master.TableDrop(input, &reply)
+	// master.TableDrop(input, &reply)
+	_, err = util.TimeoutRPC(rpcOldRegion.Go("Region.Execute", input, &reply, nil), util.TIMEOUT_M)
+	delete(master.TableIP, table)
+	if err != nil {
+		fmt.Println("region return err ", err)
+		return err
+	}
 	rpcRegion := master.RegionClients[region]
 
 	//在新的region中建表
