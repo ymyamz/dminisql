@@ -149,6 +149,11 @@ func (master *Master) watch() {
 
 			}
 		}
+		var reply string
+		err := master.SaveToFile("master.gob", &reply)
+		if err != nil {
+			fmt.Println("Error saving to file:", err)
+		}
 	}
 }
 

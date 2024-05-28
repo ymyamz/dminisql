@@ -13,6 +13,10 @@ func (client *Client) connect_to_master(call_func string, input string) string {
 	if err != nil {
 		fmt.Println("SYSTEM HINT>>> timeout, master down!")
 	}
+	//不输出
+	if call_func=="Master.SaveToFile"{
+		return ""
+	}
 	if call.Error != nil {
 		fmt.Println("RESULT>>> failed ", call.Error)
 	} else {
@@ -20,6 +24,7 @@ func (client *Client) connect_to_master(call_func string, input string) string {
 			fmt.Println("RESULT>>>\n" + res)
 		}
 	}
+	
 	return res
 }
 func (client *Client) connect_to_region(region_ip string, call_func string, input string) string {

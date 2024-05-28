@@ -95,6 +95,9 @@ func (client *Client) Run() {
 			//如果是正常执行语句
 			client.parse_sql_statement(input)
 		}
+		call_func := "Master.SaveToFile"
+		client.connect_to_master(call_func, "master.gob")
+		
 	}
 
 }
