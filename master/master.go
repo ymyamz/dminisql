@@ -357,3 +357,22 @@ func (master *Master) AllTableIp(placeholder string, reply *map[string]string) e
 	*reply = master.TableIP
 	return nil
 }
+
+
+func (master *Master)ShowNowInfo(input string, reply *string) error {  
+    fmt.Println("master nowinfo called") 
+	res:=""
+	//打印map[string]*[]string类型变量master.Owntablelist输出到
+	for k, v := range master.Owntablelist {
+		res+=fmt.Sprintf("key: %s, value: %v\n", k, *v)  
+	}
+      
+    // 整理Master结构体的所有变量到res中  
+    res += fmt.Sprintf("TableIP: %v\nBackup: %v\nAvailable: %s\nRegionIPList: %v\n",  
+        master.TableIP, master.Backup, master.Available, master.RegionIPList)  
+  
+    // 存储到reply中  
+    *reply = res  
+  
+    return nil  
+}  

@@ -371,7 +371,8 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 	if err != nil {
 		fmt.Printf(ip, " rpc.DialHTTP err: %v")
 	} else {
-
+		//重新写server和backup的IP
+		region.serverIP=""
 		region.backupClient = client
 		region.backupIP = ip
 		// 通知backup下载data.db,直接覆盖了本地data.db

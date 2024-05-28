@@ -155,6 +155,11 @@ func (client *Client) parse_sql_statement(input string) {
 			call_func := "Master.IndexShow"
 			client.connect_to_master(call_func, "no use")
 		}
+		//用于查询master当前属性
+		if items[1] == "info"{
+			call_func := "Master.ShowNowInfo"
+			client.connect_to_master(call_func, "no use")
+		}
 	case "drop":
 		if items[1] == "table" {
 			call_func := "Master.TableDrop"
