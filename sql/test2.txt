@@ -1,0 +1,9 @@
+CREATE TABLE employee (id INTEGER PRIMARY KEY, name TEXT, age INTEGER);  
+CREATE TABLE employee_department (id INTEGER PRIMARY KEY, employee_id INTEGER, department TEXT);
+
+INSERT INTO employee (name, age) VALUES ('John', 35);  
+INSERT INTO employee (name, age) VALUES ('Emily', 28);  
+INSERT INTO employee_department (employee_id, department) VALUES (1, 'Sales');  
+INSERT INTO employee_department (employee_id, department) VALUES (2, 'Marketing');
+
+SELECT * FROM employee CROSS JOIN employee_department;  

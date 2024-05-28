@@ -73,7 +73,7 @@ func (client *Client) Run() {
 				scanner := bufio.NewScanner(file)
 				for scanner.Scan() {
 					line := scanner.Text()
-					if line == "" {
+					if line == "" || len(line) == 0 {
 						continue
 					}
 					//去掉line两边的空格和末尾的分号
