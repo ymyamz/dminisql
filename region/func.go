@@ -508,6 +508,8 @@ func (region *Region) SaveFileFromFTP(args SaveFileArgs, reply *string) error {
 	return nil
 }
 //把region本地的data.db删了
-// func (region *Region)ClearAllData(input string, reply *string)error{
-	
-// }
+func (region *Region)ClearAllData(input string, reply *string)error{
+	os.Remove("./data/"+region.hostIP+".db")
+	*reply = "success"
+	return nil
+}
