@@ -380,7 +380,7 @@ func (region *Region) AssignBackup(ip string, dummyReply *bool) error {
 }
 
 // 写一个转存函数，将region的data.db中的数据转存到best ip pair中？？
-//在reply中写转存到哪个ip中了
+// 在reply中写转存到哪个ip中了
 func (region *Region) TransferToBestPair(placeholder string, reply *string) error {
 	var masterIp string
 	if util.Local {
@@ -388,17 +388,18 @@ func (region *Region) TransferToBestPair(placeholder string, reply *string) erro
 	} else {
 		masterIp = util.MASTER_IP
 	}
-	MasterClient, err := rpc.DialHTTP("tcp", masterIp+util.MASTER_PORT)
+	MasterClient, err := rpc.DialHTTP("tcp", "localhost"+masterIp)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return err
 	}
 	var bestIp string
-	_, err = util.TimeoutRPC(MasterClient.Go("Master.FindBest", "", &bestIp, nil), util.TIMEOUT_S)
+	err = MasterClient.Call("Master.FindBest", "", &bestIp)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return err
 	}
+	fmt.Println("Best server is: " + bestIp)
 	*reply = bestIp
 	var tableip map[string]string
 	// tableip = make(map[string]string)
@@ -507,9 +508,10 @@ func (region *Region) SaveFileFromFTP(args SaveFileArgs, reply *string) error {
 	fmt.Println("File downloaded successfully")
 	return nil
 }
-//把region本地的data.db删了
-func (region *Region)ClearAllData(input string, reply *string)error{
-	os.Remove("./data/"+region.hostIP+".db")
+
+// 把region本地的data.db删了
+func (region *Region) ClearAllData(input string, reply *string) error {
+	os.Remove("./data/" + region.hostIP + ".db")
 	*reply = "success"
 	return nil
 }

@@ -411,15 +411,18 @@ func (master *Master) Complex_query(input string, reply *string) error {
 	return nil
 }
 
-func (master *Master) FindBest(placeholder string, best *string) string {
+func (master *Master) FindBest(placeholder string, best *string) error {
 	min := math.MaxInt
 	*best = ""
+	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 	for ip, pTables := range master.Owntablelist {
 		if len(*pTables) < min && master.BusyOperationNum[ip] < util.BUSY_THRESHOLD {
 			min, *best = len(*pTables), ip
+			fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+			fmt.Println(*best)
 		}
 	}
-	return *best
+	return nil
 }
 
 // 将table移到region中
