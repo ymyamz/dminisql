@@ -1,0 +1,25 @@
+CREATE TABLE user_info (id INTEGER PRIMARY KEY, name TEXT, age INTEGER);
+CREATE TABLE user_address (id INTEGER PRIMARY KEY, user_id INTEGER, address TEXT);
+CREATE TABLE user_orders (id INTEGER PRIMARY KEY, user_id INTEGER, product TEXT, amount INTEGER); 
+
+INSERT INTO user_info (name, age) VALUES ('Alice', 30);  
+INSERT INTO user_info (name, age) VALUES ('Bob', 25);  
+
+INSERT INTO user_address (user_id, address) VALUES (1, '123 Main Street');  
+INSERT INTO user_address (user_id, address) VALUES (2, '456 Elm Street');  
+
+INSERT INTO user_orders (user_id, product, amount) VALUES (1, 'Shoes', 2);  
+INSERT INTO user_orders (user_id, product, amount) VALUES (2, 'Shirt', 1);  
+
+select * from user_info cross join user_address;
+
+
+CREATE TABLE employee (id INTEGER PRIMARY KEY, name TEXT, age INTEGER);  
+CREATE TABLE department (id INTEGER PRIMARY KEY, employee_id INTEGER, department TEXT);
+
+INSERT INTO employee (name, age) VALUES ('John', 35);  
+INSERT INTO employee (name, age) VALUES ('Emily', 28);  
+INSERT INTO department (employee_id, department) VALUES (1, 'Sales');  
+INSERT INTO department (employee_id, department) VALUES (2, 'Marketing');
+
+SELECT * FROM employee CROSS JOIN department;  
